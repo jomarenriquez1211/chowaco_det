@@ -23,7 +23,7 @@ credentials = service_account.Credentials.from_service_account_info(
 
 drive_service = build('drive', 'v3', credentials=credentials)
 SHARED_DRIVE_ID = st.secrets["gdrive"]["shared_drive_id"]
-FOLDER_ID = st.secrets["gdrive"]["folder_id"]  # optional, can be None
+FOLDER_ID = st.secrets["gdrive"]["shared_drive_id"]  # optional, can be None
 
 # Check if file exists in the folder
 def file_exists_in_drive(file_name, folder_id=None):
