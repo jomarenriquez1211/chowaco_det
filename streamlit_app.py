@@ -11,10 +11,10 @@ import google.generativeai as genai
 # and set it as an environment variable or in Streamlit secrets.
 # For this example, we'll use Streamlit secrets.
 # Create a .streamlit/secrets.toml file and add:
-GOOGLE_API_KEY="AIzaSyBg8kL0hF3fU78WqjTkgiap800F8kf_Meg"
+# GOOGLE_API_KEY="AIzaSyBg8kL0hF3fU78WqjTkgiap800F8kf_Meg"
 
 try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    genai.configure(api_key=st.secrets["AIzaSyAk_kN29kpSnU9CKqSVFrmFbioRu9qW5B4"])
 except KeyError:
     st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
     st.stop()
