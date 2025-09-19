@@ -6,13 +6,13 @@ import json
 # ------------------------
 # Hugging Face LLM setup (public model)
 # ------------------------
-# Replace with your Hugging Face read token
-HF_TOKEN = "hf_your_read_token_here"
+HF_TOKEN = "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"  # Replace with your token
 
-# Using a free, publicly available model
-MODEL_NAME = "tiiuae/falcon-7b-instruct"  # works with Read tokens
+# Use a public instruction-tuned model
+MODEL_NAME = "tiiuae/falcon-7b-instruct"
 
-client = InferenceClient(provider="huggingface", api_key=HF_TOKEN)
+# Use a supported provider: "hf-inference" or "auto"
+client = InferenceClient(provider="hf-inference", api_key=HF_TOKEN)
 
 # ------------------------
 # Streamlit UI
@@ -67,7 +67,6 @@ Return valid JSON matching this interface.
                 )
 
                 llm_output = completion.choices[0].message
-                # Attempt to parse JSON
                 structured_data = json.loads(llm_output)
                 
                 st.subheader("Structured Data")
