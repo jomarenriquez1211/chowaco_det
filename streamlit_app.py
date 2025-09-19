@@ -6,7 +6,7 @@ import json
 # ------------------------
 # OpenAI LLM setup
 # ------------------------
-OPENAI_API_KEY = "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"  # Replace with your OpenAI API key
+OPENAI_API_KEY = "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"  # Replace with your OpenAI API key
 openai.api_key = OPENAI_API_KEY
 MODEL_NAME = "gpt-4o-mini"  # or "gpt-5-mini"
 
