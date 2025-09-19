@@ -3,44 +3,51 @@ import pdfplumber
 import json
 import openai
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]  # Store API key in Streamlit secrets
+# Set your OpenAI API key in Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-st.title("📄 Intelligent Report Extraction Tool")
+st.title("📄 PDF to Structured Data Extraction")
 
-uploaded_file = st.file_uploader("Upload PDF", type="pdf")
+uploaded_file = st.file_uploader("Drag and drop a PDF", type="pdf")
 if uploaded_file:
-    # Extract text from PDF
+    # Step 1: Extract raw text from PDF
     text_output = ""
     with pdfplumber.open(uploaded_file) as pdf:
         for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text_output += page_text + "\n"
+            text = page.extract_text()
+            if text:
+                text_output += text + "\n"
 
-    st.subheader("Raw Extracted Text")
-    st.text_area("PDF Text", text_output, height=300)
+    st.subheader("Raw PDF Text")
+    st.text_area("Extracted Text", text_output, height=300)
 
-    # Prompt LLM for structured extraction
+    # Step 2: Use LLM to structure the data
     prompt = f"""
-You are an intelligent data extraction assistant. Extract the following fields in valid JSON:
+You are an intelligent data extraction assistant. 
+Extract data from the text below and structure it in JSON according to this interface:
 
-Fields:
-- summary: totalGoals (number), totalBMPs (number), completionRate (percentage number)
-- goals: list of goals
-- bmps: list of Best Management Practices
-- implementation: list of activities related to implementation
-- monitoring: list of metrics related to monitoring
-- outreach: list of outreach activities
-- geographicAreas: list of geographic areas mentioned
+interface ExtractedReport {{
+  summary: {{
+    totalGoals: number;
+    totalBMPs: number;
+    completionRate: number;
+  }};
+  goals: Goal[];
+  bmps: BMP[];
+  implementation: ImplementationActivity[];
+  monitoring: MonitoringMetric[];
+  outreach: OutreachActivity[];
+  geographicAreas: GeographicArea[];
+}}
 
-Return the result in JSON.
-
-Report Text:
+Text:
 {text_output}
+
+Return valid JSON that fits the above structure.
 """
 
     if st.button("Extract Structured Data"):
-        with st.spinner("Processing with LLM..."):
+        with st.spinner("Structuring data using LLM..."):
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
@@ -49,20 +56,21 @@ Report Text:
                 ],
                 temperature=0
             )
-            content = response['choices'][0]['message']['content']
+            llm_output = response['choices'][0]['message']['content']
 
+            # Step 3: Parse and display JSON
             try:
-                data = json.loads(content)
-                st.subheader("Structured Extracted Data")
-                st.json(data)
+                structured_data = json.loads(llm_output)
+                st.subheader("Structured Data")
+                st.json(structured_data)
 
-                # Option to download as JSON
+                # Allow downloading as JSON
                 st.download_button(
-                    label="📥 Download JSON",
-                    data=json.dumps(data, indent=2),
-                    file_name=f"{uploaded_file.name.replace('.pdf','')}_extracted.json",
+                    "📥 Download JSON",
+                    data=json.dumps(structured_data, indent=2),
+                    file_name=f"{uploaded_file.name.replace('.pdf','')}_structured.json",
                     mime="application/json"
                 )
             except json.JSONDecodeError:
-                st.error("Failed to parse LLM output. Raw output:")
-                st.code(content)
+                st.error("LLM output could not be parsed as JSON.")
+                st.code(llm_output)
