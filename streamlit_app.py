@@ -1,19 +1,19 @@
 import streamlit as st
 import pdfplumber
-from huggingface_hub import InferenceClient
+import openai
 import json
 
 # ------------------------
-# Hugging Face LLM setup
+# OpenAI LLM setup
 # ------------------------
-HF_TOKEN = "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"  # Replace with your HF Read token
-MODEL_NAME = "google/flan-t5-small"  # Instruction-tuned model
-client = InferenceClient(provider="hf-inference", api_key=HF_TOKEN)
+OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"  # Replace with your OpenAI API key
+openai.api_key = OPENAI_API_KEY
+MODEL_NAME = "gpt-4o-mini"  # or "gpt-5-mini"
 
 # ------------------------
 # Streamlit UI
 # ------------------------
-st.title("📄 PDF to Structured Data using Hugging Face LLM")
+st.title("📄 PDF to Structured Data using OpenAI LLM")
 
 uploaded_file = st.file_uploader("Drag and drop a PDF", type="pdf")
 
@@ -53,18 +53,22 @@ Text:
 Return valid JSON matching this interface.
 """
 
-    # 3️⃣ Use text generation (callable with 'prompt')
+    # 3️⃣ Use OpenAI API to extract structured data
     if st.button("Extract Structured Data"):
-        with st.spinner("Processing with Hugging Face LLM..."):
+        with st.spinner("Processing with OpenAI LLM..."):
             try:
-                completion = client.text_generation(
+                completion = openai.chat.completions.create(
                     model=MODEL_NAME,
-                    prompt=prompt,
-                    max_new_tokens=512,
+                    messages=[
+                        {"role": "system", "content": "You are a precise data extraction assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0,
+                    max_tokens=1500
                 )
 
-                # The output text is in 'generated_text' key of the first item
-                llm_output = completion[0].generated_text
+                # Extract response content
+                llm_output = completion.choices[0].message['content']
 
                 # Try parsing JSON
                 structured_data = json.loads(llm_output)
