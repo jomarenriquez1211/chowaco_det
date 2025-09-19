@@ -1,16 +1,5 @@
-import streamlit as st
 from openai import OpenAI
+import streamlit as st
 
-# Read key
-api_key = st.secrets["OPENAI_API_KEY"]
-
-# Initialize client
+api_key = st.secrets["OPENAI_API_KEY"]  # must match the TOML name
 client = OpenAI(api_key=api_key)
-
-# Test request
-response = client.chat.completions.create(
-    model="gpt-4o-mini", 
-    messages=[{"role": "user", "content": "Say hello"}]
-)
-
-st.write(response.choices[0].message["content"])
