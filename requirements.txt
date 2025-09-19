@@ -5,4 +5,5 @@ pandas
 openai
 google-generativeai
 google
+google.genai
 
