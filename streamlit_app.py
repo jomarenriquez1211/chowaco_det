@@ -4,11 +4,15 @@ from huggingface_hub import InferenceClient
 import json
 
 # ------------------------
-# Hugging Face LLM setup (hardcoded token)
+# Hugging Face LLM setup (public model)
 # ------------------------
-HF_TOKEN = "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"  # <-- Hardcode your token here
-client = InferenceClient(provider="cerebras", api_key=HF_TOKEN)
-MODEL_NAME = "openai/gpt-oss-120b"
+# Replace with your Hugging Face read token
+HF_TOKEN = "hf_your_read_token_here"
+
+# Using a free, publicly available model
+MODEL_NAME = "tiiuae/falcon-7b-instruct"  # works with Read tokens
+
+client = InferenceClient(provider="huggingface", api_key=HF_TOKEN)
 
 # ------------------------
 # Streamlit UI
@@ -63,6 +67,7 @@ Return valid JSON matching this interface.
                 )
 
                 llm_output = completion.choices[0].message
+                # Attempt to parse JSON
                 structured_data = json.loads(llm_output)
                 
                 st.subheader("Structured Data")
