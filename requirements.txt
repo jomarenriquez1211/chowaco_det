@@ -4,4 +4,5 @@ PyPDF2
 pandas
 openai
 google-generativeai
+google
 
