@@ -53,13 +53,13 @@ Text:
 Return valid JSON matching this interface.
 """
 
-    # 3️⃣ Use text generation (callable function)
+    # 3️⃣ Use text generation (callable with 'prompt')
     if st.button("Extract Structured Data"):
         with st.spinner("Processing with Hugging Face LLM..."):
             try:
                 completion = client.text_generation(
                     model=MODEL_NAME,
-                    inputs=prompt,
+                    prompt=prompt,
                     max_new_tokens=512,
                 )
 
