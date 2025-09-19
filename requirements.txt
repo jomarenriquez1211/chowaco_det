@@ -3,3 +3,9 @@ pdfplumber
 PyPDF2
 pandas
 openai
+
+transformers
+torch
+sentencepiece
+accelerate
+huggingface_hub
