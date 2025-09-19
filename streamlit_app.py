@@ -1,97 +1,110 @@
-import streamlit as st
-import pdfplumber
-import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
-# ------------------------
-# Gemini API setup
-# ------------------------
+client = genai.Client()
 
-# IMPORTANT: Get your API key from https://aistudio.google.com/app/apikey
-# and set it as an environment variable or in Streamlit secrets.
-# For this example, we'll use Streamlit secrets.
-# Create a .streamlit/secrets.toml file and add:
-# GOOGLE_API_KEY="AIzaSyBg8kL0hF3fU78WqjTkgiap800F8kf_Meg"
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="Explain how AI works in a few words",
+    config=types.GenerateContentConfig(
+        thinking_config=types.ThinkingConfig(thinking_budget=0) # Disables thinking
+    ),
+)
+print(response.text)
+# import streamlit as st
+# import pdfplumber
+# import json
+# import google.generativeai as genai
 
-try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-except KeyError:
-    st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
-    st.stop()
+# # ------------------------
+# # Gemini API setup
+# # ------------------------
 
-# Choose your model. Use "gemini-1.5-pro" or "gemini-1.0-pro"
-model = genai.GenerativeModel("gemini-1.5-pro")
+# # IMPORTANT: Get your API key from https://aistudio.google.com/app/apikey
+# # and set it as an environment variable or in Streamlit secrets.
+# # For this example, we'll use Streamlit secrets.
+# # Create a .streamlit/secrets.toml file and add:
+# # GOOGLE_API_KEY="AIzaSyBg8kL0hF3fU78WqjTkgiap800F8kf_Meg"
 
-# ------------------------
-# Streamlit UI
-# ------------------------
-st.title("📄 PDF to Structured Data using Gemini (Google Generative AI SDK)")
+# try:
+#     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+# except KeyError:
+#     st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
+#     st.stop()
 
-uploaded_file = st.file_uploader("Drag and drop a PDF", type="pdf")
+# # Choose your model. Use "gemini-1.5-pro" or "gemini-1.0-pro"
+# model = genai.GenerativeModel("gemini-1.5-pro")
 
-if uploaded_file:
-    # 1️⃣ Extract text from PDF
-    text_output = ""
-    with pdfplumber.open(uploaded_file) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text_output += page_text + "\n"
+# # ------------------------
+# # Streamlit UI
+# # ------------------------
+# st.title("📄 PDF to Structured Data using Gemini (Google Generative AI SDK)")
 
-    st.subheader("Raw PDF Text")
-    st.text_area("Extracted Text", text_output, height=300)
+# uploaded_file = st.file_uploader("Drag and drop a PDF", type="pdf")
 
-    # 2️⃣ Prepare prompt
-    prompt = f"""
-    You are an intelligent data extraction assistant. Extract the following structured report from the text below.
+# if uploaded_file:
+#     # 1️⃣ Extract text from PDF
+#     text_output = ""
+#     with pdfplumber.open(uploaded_file) as pdf:
+#         for page in pdf.pages:
+#             page_text = page.extract_text()
+#             if page_text:
+#                 text_output += page_text + "\n"
 
-    interface ExtractedReport {{
-      summary: {{
-        totalGoals: number;
-        totalBMPs: number;
-        completionRate: number;
-      }};
-      goals: Goal[];
-      bmps: BMP[];
-      implementation: ImplementationActivity[];
-      monitoring: MonitoringMetric[];
-      outreach: OutreachActivity[];
-      geographicAreas: GeographicArea[];
-    }}
+#     st.subheader("Raw PDF Text")
+#     st.text_area("Extracted Text", text_output, height=300)
 
-    Text:
-    {text_output}
+#     # 2️⃣ Prepare prompt
+#     prompt = f"""
+#     You are an intelligent data extraction assistant. Extract the following structured report from the text below.
 
-    Return only valid JSON that matches this interface. Do not include any additional text or formatting.
-    """
+#     interface ExtractedReport {{
+#       summary: {{
+#         totalGoals: number;
+#         totalBMPs: number;
+#         completionRate: number;
+#       }};
+#       goals: Goal[];
+#       bmps: BMP[];
+#       implementation: ImplementationActivity[];
+#       monitoring: MonitoringMetric[];
+#       outreach: OutreachActivity[];
+#       geographicAreas: GeographicArea[];
+#     }}
 
-    # 3️⃣ Call Gemini API
-    if st.button("Extract Structured Data"):
-        with st.spinner("Processing with Gemini..."):
-            try:
-                response = model.generate_content(prompt)
+#     Text:
+#     {text_output}
+
+#     Return only valid JSON that matches this interface. Do not include any additional text or formatting.
+#     """
+
+#     # 3️⃣ Call Gemini API
+#     if st.button("Extract Structured Data"):
+#         with st.spinner("Processing with Gemini..."):
+#             try:
+#                 response = model.generate_content(prompt)
                 
-                # Access the text from the response object
-                llm_output = response.text
+#                 # Access the text from the response object
+#                 llm_output = response.text
                 
-                # Clean up any potential markdown or extra characters
-                llm_output = llm_output.strip().replace("```json", "").replace("```", "")
+#                 # Clean up any potential markdown or extra characters
+#                 llm_output = llm_output.strip().replace("```json", "").replace("```", "")
                 
-                # Parse JSON
-                structured_data = json.loads(llm_output)
+#                 # Parse JSON
+#                 structured_data = json.loads(llm_output)
 
-                st.subheader("Structured Data")
-                st.json(structured_data)
+#                 st.subheader("Structured Data")
+#                 st.json(structured_data)
 
-                st.download_button(
-                    "📥 Download JSON",
-                    data=json.dumps(structured_data, indent=2),
-                    file_name=f"{uploaded_file.name.replace('.pdf','')}_structured.json",
-                    mime="application/json"
-                )
+#                 st.download_button(
+#                     "📥 Download JSON",
+#                     data=json.dumps(structured_data, indent=2),
+#                     file_name=f"{uploaded_file.name.replace('.pdf','')}_structured.json",
+#                     mime="application/json"
+#                 )
 
-            except json.JSONDecodeError:
-                st.error("Failed to parse LLM output as JSON. Here is the raw output:")
-                st.code(llm_output)
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+#             except json.JSONDecodeError:
+#                 st.error("Failed to parse LLM output as JSON. Here is the raw output:")
+#                 st.code(llm_output)
+#             except Exception as e:
+#                 st.error(f"An error occurred: {e}")
