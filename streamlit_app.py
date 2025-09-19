@@ -19,7 +19,8 @@ except KeyError:
     st.stop()
 
 # Using the recommended gemini-1.5-flash model for its generous free tier limits.
-model = genai.GenerativeModel("gemini-1.5-flash")
+# We're now using the explicit "latest" alias to ensure compatibility with structured output.
+model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
 # ------------------------
 # Streamlit UI
@@ -52,6 +53,7 @@ if uploaded_file:
     """
 
     # Define the JSON schema for the desired output
+    # The API requires a non-empty 'properties' field for any object types.
     json_schema = {
         "type": "object",
         "properties": {
@@ -65,27 +67,45 @@ if uploaded_file:
             },
             "goals": {
                 "type": "array",
-                "items": {"type": "object"},  # Use a generic object since we don't know the exact properties
+                "items": {
+                    "type": "object",
+                    "properties": { "name": { "type": "string" } }
+                },
             },
             "bmps": {
                 "type": "array",
-                "items": {"type": "object"},
+                "items": {
+                    "type": "object",
+                    "properties": { "name": { "type": "string" } }
+                },
             },
             "implementation": {
                 "type": "array",
-                "items": {"type": "object"},
+                "items": {
+                    "type": "object",
+                    "properties": { "activity": { "type": "string" } }
+                },
             },
             "monitoring": {
                 "type": "array",
-                "items": {"type": "object"},
+                "items": {
+                    "type": "object",
+                    "properties": { "metric": { "type": "string" } }
+                },
             },
             "outreach": {
                 "type": "array",
-                "items": {"type": "object"},
+                "items": {
+                    "type": "object",
+                    "properties": { "activity": { "type": "string" } }
+                },
             },
             "geographicAreas": {
                 "type": "array",
-                "items": {"type": "object"},
+                "items": {
+                    "type": "object",
+                    "properties": { "name": { "type": "string" } }
+                },
             },
         },
     }
