@@ -53,17 +53,18 @@ Text:
 Return valid JSON matching this interface.
 """
 
-    # 3️⃣ Use text generation (not chat) for this model
+    # 3️⃣ Use text generation (callable function)
     if st.button("Extract Structured Data"):
         with st.spinner("Processing with Hugging Face LLM..."):
             try:
-                completion = client.text_generation.create(
+                completion = client.text_generation(
                     model=MODEL_NAME,
                     inputs=prompt,
                     max_new_tokens=512,
                 )
 
-                llm_output = completion.generated_text
+                # The output text is in 'generated_text' key of the first item
+                llm_output = completion[0].generated_text
 
                 # Try parsing JSON
                 structured_data = json.loads(llm_output)
