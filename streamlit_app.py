@@ -6,7 +6,7 @@ import json
 # ------------------------
 # Hugging Face LLM setup (hardcoded token)
 # ------------------------
-HF_TOKEN = "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"  # <-- Hardcode your token here
+HF_TOKEN = "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"  # <-- Hardcode your token here
 client = InferenceClient(provider="cerebras", api_key=HF_TOKEN)
 MODEL_NAME = "openai/gpt-oss-120b"
 
