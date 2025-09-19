@@ -1,16 +1,21 @@
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+import os
 
-client = genai.Client()
+# Replace 'YOUR_API_KEY' with your actual key
+# Or if you've set it as an environment variable, it will be automatically picked up
+# os.environ['GOOGLE_API_KEY'] = 'YOUR_API_KEY'
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents="Explain how AI works in a few words",
-    config=types.GenerateContentConfig(
-        thinking_config=types.ThinkingConfig(thinking_budget=0) # Disables thinking
-    ),
-)
-print(response.text)
+try:
+    genai.configure(api_key="AIzaSyAk_kN29kpSnU9CKqSVFrmFbioRu9qW5B4")
+    # This is a simple, lightweight call to list models, which doesn't
+    # cost anything and verifies the key's validity
+    for m in genai.list_models():
+        if "generateContent" in m.supported_generation_methods:
+            print(f"Key is valid! Model: {m.name}")
+            break
+except Exception as e:
+    print(f"An error occurred: {e}")
+    print("The API key is likely invalid or there is a configuration issue.")
 # import streamlit as st
 # import pdfplumber
 # import json
