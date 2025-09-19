@@ -1,72 +1,68 @@
 import streamlit as st
 import pdfplumber
-import pandas as pd
-import io
+import json
+import openai
 
-st.set_page_config(page_title="PDF Extractor", layout="wide")
-st.title("📄 PDF Upload & Intelligent Text Extraction")
+openai.api_key = st.secrets["OPENAI_API_KEY"]  # Store API key in Streamlit secrets
 
-# Sidebar options
-st.sidebar.header("Options")
-extract_tables = st.sidebar.checkbox("Extract tables", value=True)
-use_ocr = st.sidebar.checkbox("Use OCR (for scanned PDFs)", value=False)
+st.title("📄 Intelligent Report Extraction Tool")
 
-# PDF uploader
-uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
+uploaded_file = st.file_uploader("Upload PDF", type="pdf")
 if uploaded_file:
-    st.success(f"Uploaded file: {uploaded_file.name}")
-    
-    # Extract text and tables
+    # Extract text from PDF
     text_output = ""
-    tables_list = []
+    with pdfplumber.open(uploaded_file) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text_output += page_text + "\n"
 
-    try:
-        with pdfplumber.open(uploaded_file) as pdf:
-            for page_number, page in enumerate(pdf.pages, start=1):
-                # Extract text
-                text = page.extract_text()
-                if text:
-                    text_output += f"--- Page {page_number} ---\n{text}\n\n"
+    st.subheader("Raw Extracted Text")
+    st.text_area("PDF Text", text_output, height=300)
 
-                # Extract tables
-                if extract_tables:
-                    tables = page.extract_tables()
-                    for table in tables:
-                        df = pd.DataFrame(table[1:], columns=table[0])
-                        tables_list.append(df)
+    # Prompt LLM for structured extraction
+    prompt = f"""
+You are an intelligent data extraction assistant. Extract the following fields in valid JSON:
 
-        # Display text
-        st.subheader("Extracted Text")
-        st.text_area("Text Content", text_output, height=400)
+Fields:
+- summary: totalGoals (number), totalBMPs (number), completionRate (percentage number)
+- goals: list of goals
+- bmps: list of Best Management Practices
+- implementation: list of activities related to implementation
+- monitoring: list of metrics related to monitoring
+- outreach: list of outreach activities
+- geographicAreas: list of geographic areas mentioned
 
-        # Allow download of text
-        st.download_button(
-            label="📥 Download Text",
-            data=text_output,
-            file_name=f"{uploaded_file.name.replace('.pdf','')}_text.txt",
-            mime="text/plain"
-        )
+Return the result in JSON.
 
-        # Display tables if any
-        if tables_list:
-            st.subheader("Extracted Tables")
-            for idx, table_df in enumerate(tables_list, start=1):
-                st.write(f"Table {idx}")
-                st.dataframe(table_df)
+Report Text:
+{text_output}
+"""
 
-            # Download tables as Excel
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                for idx, table_df in enumerate(tables_list, start=1):
-                    table_df.to_excel(writer, sheet_name=f"Table_{idx}", index=False)
-            st.download_button(
-                label="📥 Download Tables as Excel",
-                data=output.getvalue(),
-                file_name=f"{uploaded_file.name.replace('.pdf','')}_tables.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    if st.button("Extract Structured Data"):
+        with st.spinner("Processing with LLM..."):
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0
             )
+            content = response['choices'][0]['message']['content']
 
-    except Exception as e:
-        st.error(f"Error processing PDF: {e}")
-        if use_ocr:
-            st.warning("OCR option is enabled but not implemented in this version.")
+            try:
+                data = json.loads(content)
+                st.subheader("Structured Extracted Data")
+                st.json(data)
+
+                # Option to download as JSON
+                st.download_button(
+                    label="📥 Download JSON",
+                    data=json.dumps(data, indent=2),
+                    file_name=f"{uploaded_file.name.replace('.pdf','')}_extracted.json",
+                    mime="application/json"
+                )
+            except json.JSONDecodeError:
+                st.error("Failed to parse LLM output. Raw output:")
+                st.code(content)
