@@ -1,8 +1,8 @@
 import streamlit as st
 import pdfplumber
 
-st.set_page_config(page_title="PDF Structured Extractor", layout="centered")
-st.title("📑 PDF Structured Extractor")
+st.set_page_config(page_title="PDF Full Extractor", layout="wide")
+st.title("📑 PDF Full Extractor (Text + Tables + Images)")
 
 uploaded_files = st.file_uploader(
     "Upload one or more PDF files",
@@ -21,33 +21,39 @@ if uploaded_files:
 
     for file in uploaded_files:
         if file.name in selected_files:
+            st.subheader(f"📘 Extracted Content from {file.name}")
+            
             with pdfplumber.open(file) as pdf:
-                num_pages = len(pdf.pages)
-                
-                # Page selector
-                st.subheader(f"📘 {file.name}")
-                selected_page = st.number_input(
-                    f"Select page (1-{num_pages}) for {file.name}", 
-                    min_value=1, 
-                    max_value=num_pages, 
-                    value=1, 
-                    key=file.name  # unique key per file
-                )
-                
-                # Extract text from selected page
-                page = pdf.pages[selected_page - 1]
-                page_text = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
-                
-                # Extract tables (if any)
-                tables = page.extract_tables()
-                if tables:
-                    for table in tables:
-                        page_text += "\n\n[TABLE]\n"
-                        for row in table:
-                            page_text += " | ".join(cell or "" for cell in row) + "\n"
+                full_text = ""
 
-                st.text_area(
-                    f"📄 Page {selected_page} content",
-                    page_text,
-                    height=300
-                )
+                for i, page in enumerate(pdf.pages, start=1):
+                    st.markdown(f"### 📄 Page {i}")
+
+                    # ---- Extract text ----
+                    text = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
+                    full_text += text + "\n\n"
+                    if text.strip():
+                        st.text_area(f"Text (Page {i})", text, height=200, key=f"{file.name}_text_{i}")
+
+                    # ---- Extract tables ----
+                    tables = page.extract_tables()
+                    for table in tables:
+                        st.markdown("**Table found:**")
+                        for row in table:
+                            st.write(" | ".join(cell or "" for cell in row))
+
+                    # ---- Extract images ----
+                    images = page.images
+                    if images:
+                        st.markdown("**Images found:**")
+                        for img_idx, img in enumerate(images, start=1):
+                            try:
+                                # Crop image from PDF
+                                image = page.crop((img["x0"], img["top"], img["x1"], img["bottom"])).to_image()
+                                st.image(image.original, caption=f"Page {i} - Image {img_idx}")
+                            except Exception as e:
+                                st.warning(f"Could not extract image {img_idx} on page {i}: {e}")
+
+            # Optional: show full text combined
+            with st.expander("📑 Full Extracted Text (All Pages)"):
+                st.text_area("Full Text", full_text, height=400)
