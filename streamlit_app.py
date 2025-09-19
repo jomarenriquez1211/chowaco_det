@@ -20,7 +20,7 @@ except KeyError:
     st.stop()
 
 # Choose your model. Use "gemini-1.5-pro" or "gemini-1.0-pro"
-model = genai.GenerativeModel("Gemini 2.5 Pro")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ------------------------
 # Streamlit UI
