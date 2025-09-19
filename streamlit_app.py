@@ -8,10 +8,9 @@ import google.generativeai as genai
 # ------------------------
 
 # IMPORTANT: Get your API key from https://aistudio.google.com/app/apikey
-# and set it as an environment variable or in Streamlit secrets.
-# For this example, we'll use Streamlit secrets.
-# Create a .streamlit/secrets.toml file and add:
-# GOOGLE_API_KEY="AIzaSyBg8kL0hF3fU78WqjTkgiap800F8kf_Meg"
+# and set it as a Streamlit secret.
+# In your Streamlit app, create a .streamlit/secrets.toml file and add:
+# GOOGLE_API_KEY="AIzaSy...your-key..._Meg"
 
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -19,13 +18,14 @@ except KeyError:
     st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
     st.stop()
 
-# Choose your model. Use "gemini-1.5-pro" or "gemini-1.0-pro"
+# Using the recommended gemini-1.5-flash model for its generous free tier limits.
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ------------------------
 # Streamlit UI
 # ------------------------
-st.title("📄 PDF to Structured Data using Gemini (Google Generative AI SDK)")
+st.title("📄 PDF to Structured Data using Gemini")
+st.markdown("Upload a PDF file to extract structured data based on a predefined interface.")
 
 uploaded_file = st.file_uploader("Drag and drop a PDF", type="pdf")
 
@@ -39,46 +39,72 @@ if uploaded_file:
                 text_output += page_text + "\n"
 
     st.subheader("Raw PDF Text")
-    st.text_area("Extracted Text", text_output, height=300)
+    st.text_area("Extracted Text", text_output, height=300, key="raw_text")
 
-    # 2️⃣ Prepare prompt
+    # 2️⃣ Prepare the prompt and the structured schema
     prompt = f"""
     You are an intelligent data extraction assistant. Extract the following structured report from the text below.
-
-    interface ExtractedReport {{
-      summary: {{
-        totalGoals: number;
-        totalBMPs: number;
-        completionRate: number;
-      }};
-      goals: Goal[];
-      bmps: BMP[];
-      implementation: ImplementationActivity[];
-      monitoring: MonitoringMetric[];
-      outreach: OutreachActivity[];
-      geographicAreas: GeographicArea[];
-    }}
 
     Text:
     {text_output}
 
-    Return only valid JSON that matches this interface. Do not include any additional text or formatting.
+    Return only valid JSON that matches the provided schema. Do not include any additional text or formatting.
     """
 
-    # 3️⃣ Call Gemini API
-    if st.button("Extract Structured Data"):
+    # Define the JSON schema for the desired output
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "summary": {
+                "type": "object",
+                "properties": {
+                    "totalGoals": {"type": "number"},
+                    "totalBMPs": {"type": "number"},
+                    "completionRate": {"type": "number"},
+                },
+            },
+            "goals": {
+                "type": "array",
+                "items": {"type": "object"},  # Use a generic object since we don't know the exact properties
+            },
+            "bmps": {
+                "type": "array",
+                "items": {"type": "object"},
+            },
+            "implementation": {
+                "type": "array",
+                "items": {"type": "object"},
+            },
+            "monitoring": {
+                "type": "array",
+                "items": {"type": "object"},
+            },
+            "outreach": {
+                "type": "array",
+                "items": {"type": "object"},
+            },
+            "geographicAreas": {
+                "type": "array",
+                "items": {"type": "object"},
+            },
+        },
+    }
+
+    # 3️⃣ Call Gemini API with structured output configuration
+    if st.button("Extract Structured Data", key="extract_button"):
         with st.spinner("Processing with Gemini..."):
             try:
-                response = model.generate_content(prompt)
-                
-                # Access the text from the response object
-                llm_output = response.text
-                
-                # Clean up any potential markdown or extra characters
-                llm_output = llm_output.strip().replace("```json", "").replace("```", "")
-                
-                # Parse JSON
-                structured_data = json.loads(llm_output)
+                # Use a generation_config to ensure the model returns a structured JSON object
+                response = model.generate_content(
+                    prompt,
+                    generation_config={
+                        "response_mime_type": "application/json",
+                        "response_schema": json_schema,
+                    }
+                )
+
+                # The response.text will now contain the valid JSON string
+                structured_data = json.loads(response.text)
 
                 st.subheader("Structured Data")
                 st.json(structured_data)
@@ -90,8 +116,5 @@ if uploaded_file:
                     mime="application/json"
                 )
 
-            except json.JSONDecodeError:
-                st.error("Failed to parse LLM output as JSON. Here is the raw output:")
-                st.code(llm_output)
             except Exception as e:
                 st.error(f"An error occurred: {e}")
