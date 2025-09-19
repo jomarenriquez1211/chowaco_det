@@ -1,19 +1,23 @@
 import streamlit as st
 import pdfplumber
-import openai
+import requests
 import json
 
 # ------------------------
-# OpenAI LLM setup
+# Gemini API setup
 # ------------------------
-OPENAI_API_KEY = "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"
-openai.api_key = OPENAI_API_KEY
-MODEL_NAME = "gpt-4o-mini"  # or "gpt-5-mini"
+GEMINI_API_KEY = "AIzaSyBg8kL0hF3fU78WqjTkgiap800F8kf_Meg"
+GEMINI_API_URL = "https://api.generativeai.googleapis.com/v1beta2/models/gemini-1.5:predict"
+
+headers = {
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {GEMINI_API_KEY}"
+}
 
 # ------------------------
 # Streamlit UI
 # ------------------------
-st.title("📄 PDF to Structured Data using OpenAI LLM")
+st.title("📄 PDF to Structured Data using Gemini API")
 
 uploaded_file = st.file_uploader("Drag and drop a PDF", type="pdf")
 
@@ -29,7 +33,7 @@ if uploaded_file:
     st.subheader("Raw PDF Text")
     st.text_area("Extracted Text", text_output, height=300)
 
-    # 2️⃣ Prepare prompt for LLM
+    # 2️⃣ Prepare prompt for Gemini
     prompt = f"""
 You are an intelligent data extraction assistant. Extract the following structured report from the text below.
 
@@ -53,22 +57,19 @@ Text:
 Return valid JSON matching this interface.
 """
 
-    # 3️⃣ Use OpenAI API to extract structured data
+    # 3️⃣ Use Gemini API
     if st.button("Extract Structured Data"):
-        with st.spinner("Processing with OpenAI LLM..."):
+        with st.spinner("Processing with Gemini API..."):
             try:
-                completion = openai.chat.completions.create(
-                    model=MODEL_NAME,
-                    messages=[
-                        {"role": "system", "content": "You are a precise data extraction assistant."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0,
-                    max_tokens=1500
-                )
+                payload = {
+                    "instances": [{"content": prompt}],
+                    "parameters": {"max_output_tokens": 1500}
+                }
 
-                # Extract response content
-                llm_output = completion.choices[0].message['content']
+                response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
+                response.raise_for_status()
+
+                llm_output = response.json()["predictions"][0]["content"]
 
                 # Try parsing JSON
                 structured_data = json.loads(llm_output)
