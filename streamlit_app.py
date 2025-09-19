@@ -15,24 +15,24 @@ uploaded_files = st.file_uploader(
 if uploaded_files:
     file_names = [file.name for file in uploaded_files]
 
-    # Show "modal-like" box for selection (using Streamlit container + markdown)
+    # "Modal-like" section for multiple file selection
     with st.container():
-        st.markdown("### 📌 Select File")
-        st.info("Multiple PDFs were uploaded. Please select the file to process:")
+        st.markdown("### 📌 Select Files")
+        st.info("Multiple PDFs were uploaded. Please select one or more to process:")
 
-        selected_file = st.radio(
-            "Choose one PDF:", 
+        selected_files = st.multiselect(
+            "Choose PDFs:",
             options=file_names,
-            index=0
+            default=file_names  # preselect all
         )
 
-    if st.button("Process Selected PDF"):
+    if st.button("Process Selected PDFs"):
         for file in uploaded_files:
-            if file.name == selected_file:
+            if file.name in selected_files:
                 pdf_reader = PdfReader(file)
                 text = ""
                 for page in pdf_reader.pages:
                     text += page.extract_text() or ""
                 
-                st.subheader(f"📘 Extracted Text from {selected_file}")
+                st.subheader(f"📘 Extracted Text from {file.name}")
                 st.text_area("Extracted text", text[:3000], height=200)  # preview
