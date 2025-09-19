@@ -19,22 +19,35 @@ if uploaded_files:
         default=file_names
     )
 
-    if st.button("Process Selected PDFs"):
-        for file in uploaded_files:
-            if file.name in selected_files:
-                structured_text = ""
-                with pdfplumber.open(file) as pdf:
-                    for page in pdf.pages:
-                        # Extract text with formatting
-                        text = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
-                        structured_text += text + "\n\n"
-                        
-                        # Extract tables (if any)
-                        tables = page.extract_tables()
-                        for table in tables:
-                            structured_text += "\n[TABLE]\n"
-                            for row in table:
-                                structured_text += " | ".join(cell or "" for cell in row) + "\n"
+    for file in uploaded_files:
+        if file.name in selected_files:
+            with pdfplumber.open(file) as pdf:
+                num_pages = len(pdf.pages)
+                
+                # Page selector
+                st.subheader(f"📘 {file.name}")
+                selected_page = st.number_input(
+                    f"Select page (1-{num_pages}) for {file.name}", 
+                    min_value=1, 
+                    max_value=num_pages, 
+                    value=1, 
+                    key=file.name  # unique key per file
+                )
+                
+                # Extract text from selected page
+                page = pdf.pages[selected_page - 1]
+                page_text = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
+                
+                # Extract tables (if any)
+                tables = page.extract_tables()
+                if tables:
+                    for table in tables:
+                        page_text += "\n\n[TABLE]\n"
+                        for row in table:
+                            page_text += " | ".join(cell or "" for cell in row) + "\n"
 
-                st.subheader(f"📘 Extracted Text from {file.name}")
-                st.text_area("Extracted text with structure", structured_text[:3000], height=200)
+                st.text_area(
+                    f"📄 Page {selected_page} content",
+                    page_text,
+                    height=300
+                )
