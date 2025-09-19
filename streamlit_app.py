@@ -5,6 +5,8 @@ from openai import OpenAI
 
 # Load API key from Streamlit secrets
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+st.write("✅ API key loaded?", bool(st.secrets.get("OPENAI_API_KEY")))
+
 
 # Function to extract text from multiple PDFs
 def extract_text_from_pdfs(uploaded_files):
