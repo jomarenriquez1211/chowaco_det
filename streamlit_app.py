@@ -1,15 +1,15 @@
 import streamlit as st
 from openai import OpenAI
 
-# Get the key from Streamlit secrets
+# Read key
 api_key = st.secrets["OPENAI_API_KEY"]
 
 # Initialize client
 client = OpenAI(api_key=api_key)
 
-# Test call
+# Test request
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="gpt-4o-mini", 
     messages=[{"role": "user", "content": "Say hello"}]
 )
 
