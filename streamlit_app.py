@@ -4,14 +4,10 @@ from huggingface_hub import InferenceClient
 import json
 
 # ------------------------
-# Hugging Face LLM setup (public model)
+# Hugging Face LLM setup
 # ------------------------
-HF_TOKEN = "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"  # Replace with your token
-
-# Use a public instruction-tuned model
-MODEL_NAME = "google/flan-t5-small"
-
-# Use a supported provider: "hf-inference" or "auto"
+HF_TOKEN = "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"  # Replace with your HF Read token
+MODEL_NAME = "google/flan-t5-small"  # Instruction-tuned model
 client = InferenceClient(provider="hf-inference", api_key=HF_TOKEN)
 
 # ------------------------
@@ -57,16 +53,19 @@ Text:
 Return valid JSON matching this interface.
 """
 
-    # 3️⃣ Send to LLM when button is clicked
+    # 3️⃣ Use text generation (not chat) for this model
     if st.button("Extract Structured Data"):
         with st.spinner("Processing with Hugging Face LLM..."):
             try:
-                completion = client.chat.completions.create(
+                completion = client.text_generation.create(
                     model=MODEL_NAME,
-                    messages=[{"role": "user", "content": prompt}]
+                    inputs=prompt,
+                    max_new_tokens=512,
                 )
 
-                llm_output = completion.choices[0].message
+                llm_output = completion.generated_text
+
+                # Try parsing JSON
                 structured_data = json.loads(llm_output)
                 
                 st.subheader("Structured Data")
