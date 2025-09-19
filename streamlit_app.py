@@ -1,59 +1,85 @@
 import streamlit as st
 import pdfplumber
+import json
+from openai import OpenAI
 
-st.set_page_config(page_title="PDF Full Extractor", layout="wide")
-st.title("📑 PDF Full Extractor (Text + Tables + Images)")
+# Load API key from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+# Function to extract text from multiple PDFs
+def extract_text_from_pdfs(uploaded_files):
+    all_text = ""
+    for uploaded_file in uploaded_files:
+        with pdfplumber.open(uploaded_file) as pdf:
+            for page in pdf.pages:
+                text = page.extract_text()
+                if text:
+                    all_text += text + "\n"
+    return all_text
+
+# Function to call GPT-4 for structured extraction
+def extract_with_gpt4(pdf_text: str):
+    prompt = f"""
+    You are an expert at extracting structured data from unstructured reports.
+    Given the following text, extract the information into this JSON structure:
+
+    {{
+      "summary": {{
+        "totalGoals": number,
+        "totalBMPs": number,
+        "completionRate": number
+      }},
+      "goals": [],
+      "bmps": [],
+      "implementation": [],
+      "monitoring": [],
+      "outreach": [],
+      "geographicAreas": []
+    }}
+
+    IMPORTANT:
+    - Only return valid JSON
+    - If information is missing, use null or empty arrays
+    - Infer counts if explicitly written
+
+    Report text:
+    {pdf_text}
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",  # can change to "gpt-4" if available
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0
+    )
+
+    try:
+        data = json.loads(response.choices[0].message.content)
+    except json.JSONDecodeError:
+        st.error("⚠️ GPT-4 response was not valid JSON.")
+        return None
+
+    return data
+
+
+# ---------------- STREAMLIT APP ---------------- #
+
+st.set_page_config(page_title="🌱 PDF Report Extractor", layout="wide")
+st.title("🌱 PDF Report Extractor with GPT-4")
 
 uploaded_files = st.file_uploader(
-    "Upload one or more PDF files",
-    type="pdf",
-    accept_multiple_files=True
+    "Upload one or more PDF reports", type=["pdf"], accept_multiple_files=True
 )
 
 if uploaded_files:
-    file_names = [file.name for file in uploaded_files]
+    st.success(f"{len(uploaded_files)} file(s) uploaded successfully.")
 
-    selected_files = st.multiselect(
-        "Choose PDFs to process:",
-        options=file_names,
-        default=file_names
-    )
+    if st.button("🚀 Extract Data with GPT-4"):
+        with st.spinner("Extracting text from PDFs..."):
+            pdf_text = extract_text_from_pdfs(uploaded_files)
 
-    for file in uploaded_files:
-        if file.name in selected_files:
-            st.subheader(f"📘 Extracted Content from {file.name}")
-            
-            with pdfplumber.open(file) as pdf:
-                full_text = ""
+        with st.spinner("Sending to GPT-4 for analysis..."):
+            result = extract_with_gpt4(pdf_text)
 
-                for i, page in enumerate(pdf.pages, start=1):
-                    st.markdown(f"### 📄 Page {i}")
-
-                    # ---- Extract text ----
-                    text = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
-                    full_text += text + "\n\n"
-                    if text.strip():
-                        st.text_area(f"Text (Page {i})", text, height=200, key=f"{file.name}_text_{i}")
-
-                    # ---- Extract tables ----
-                    tables = page.extract_tables()
-                    for table in tables:
-                        st.markdown("**Table found:**")
-                        for row in table:
-                            st.write(" | ".join(cell or "" for cell in row))
-
-                    # ---- Extract images ----
-                    images = page.images
-                    if images:
-                        st.markdown("**Images found:**")
-                        for img_idx, img in enumerate(images, start=1):
-                            try:
-                                # Crop image from PDF
-                                image = page.crop((img["x0"], img["top"], img["x1"], img["bottom"])).to_image()
-                                st.image(image.original, caption=f"Page {i} - Image {img_idx}")
-                            except Exception as e:
-                                st.warning(f"Could not extract image {img_idx} on page {i}: {e}")
-
-            # Optional: show full text combined
-            with st.expander("📑 Full Extracted Text (All Pages)"):
-                st.text_area("Full Text", full_text, height=400)
+        if result:
+            st.subheader("📊 Extracted Data (JSON)")
+            st.json(result)
