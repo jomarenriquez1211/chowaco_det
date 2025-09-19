@@ -1,48 +1,15 @@
-import streamlit as st
-from PyPDF2 import PdfReader
 from huggingface_hub import InferenceClient
+import streamlit as st
 
-# Load HF client
 hf_key = st.secrets["HF_API_KEY"]
-client = InferenceClient(api_key=hf_key)
+client = InferenceClient(token=hf_key)
 
-st.title("📄 Free PDF Extractor (Hugging Face API)")
+prompt = "Translate English to German: How are you?"
 
-uploaded_files = st.file_uploader(
-    "Upload PDFs", type=["pdf"], accept_multiple_files=True
+response = client.text2text_generation(
+    model="google/flan-t5-base",
+    input=prompt,
+    max_new_tokens=300
 )
 
-if uploaded_files:
-    pdf_texts = {}
-
-    for uploaded_file in uploaded_files:
-        reader = PdfReader(uploaded_file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() or ""
-        pdf_texts[uploaded_file.name] = text
-
-    selected_files = st.multiselect(
-        "Select PDF(s) for processing:", list(pdf_texts.keys())
-    )
-
-    if st.button("🔍 Extract with Hugging Face"):
-        for file_name in selected_files:
-            with st.spinner(f"Processing {file_name}..."):
-                prompt = f"""
-                Extract and categorize this PDF content into JSON with fields:
-                summary, goals, bmps, implementation, monitoring, outreach, geographicAreas.
-                
-                Content:
-                {pdf_texts[file_name]}
-                """
-
-                # Call Hugging Face Inference API
-                response = client.text_generation(
-                    model="google/flan-t5-base", 
-                    prompt=prompt, 
-                    max_new_tokens=300
-                )
-
-                st.subheader(f"Results for {file_name}")
-                st.json(response)
+st.write(response)
