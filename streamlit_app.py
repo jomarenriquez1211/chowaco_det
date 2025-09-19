@@ -9,7 +9,7 @@ import json
 HF_TOKEN = "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"  # Replace with your token
 
 # Use a public instruction-tuned model
-MODEL_NAME = "tiiuae/falcon-7b-instruct"
+MODEL_NAME = "google/flan-t5-small"
 
 # Use a supported provider: "hf-inference" or "auto"
 client = InferenceClient(provider="hf-inference", api_key=HF_TOKEN)
