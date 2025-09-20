@@ -166,7 +166,7 @@ if uploaded_files:
                         -summary: with totalGoals (number), totalBMPs (number), and completionRate (number between 0-100).
                         -goals: Array of goal activity objects, each with title and description. 
                         -bmps: Array of Best Management Practices(BMP) activity objects, each with title, description, and category. 
-                    
+                        -implementation: Array of implementation activity objects, each with activity and description.
                         -monitoring: Array of monitoring activity objects, each with activity and description. 
                         -outreach: Array of outreach activity objects, each with activity and description. 
                         -geographicAreas: Array of geographic area objects, each with name and description.
