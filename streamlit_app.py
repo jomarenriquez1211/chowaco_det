@@ -96,16 +96,53 @@ if uploaded_file:
         Text:
         {pdf_text}
 
-        Return only valid JSON matching the ExtractedReport interface:
-        ExtractedReport {{
-            summary: {{ totalGoals: number; totalBMPs: number; completionRate: number; }};
-            goals: Goal[];
-            bmps: BMP[];
-            implementation: ImplementationActivity[];
-            monitoring: MonitoringMetric[];
-            outreach: OutreachActivity[];
-            geographicAreas: GeographicArea[];
-        }}
+interface ExtractedReport {
+  summary: {
+    totalGoals: number;
+    totalBMPs: number;
+    completionRate: number;
+  };
+  goals: Goal[];
+  bmps: BMP[];
+  implementation: ImplementationActivity[];
+  monitoring: MonitoringMetric[];
+  outreach: OutreachActivity[];
+  geographicAreas: GeographicArea[];
+}
+
+Instructions:
+
+1. Identify and count all distinct goals mentioned in the report and populate the `goals` array. Each goal should have a title and description.
+2. Identify all Best Management Practices (BMPs) described, including associated details such as category, description, or implementation status, and populate the `bmps` array.
+3. Extract implementation activities and assign them to the `implementation` array, capturing details such as responsible parties, timeline, and related goals/BMPs.
+4. Extract monitoring metrics, such as measurements, indicators, or targets, and populate the `monitoring` array.
+5. Extract outreach activities such as workshops, training, or community engagement efforts and populate the `outreach` array.
+6. Identify geographic areas, such as watersheds, counties, or regions, and populate the `geographicAreas` array.
+7. Generate a `summary` object with:
+   - `totalGoals`: the number of distinct goals
+   - `totalBMPs`: the total number of BMPs
+   - `completionRate`: a percentage estimate based on reported progress
+8. Ignore irrelevant content and focus only on actionable, report-specific data.
+9. Output your result as a valid JSON object that strictly follows the `ExtractedReport` interface.
+
+Example output:
+
+{
+  "summary": {
+    "totalGoals": 3,
+    "totalBMPs": 12,
+    "completionRate": 75
+  },
+  "goals": [
+    { "title": "Goal 1", "description": "Reduce soil erosion in watershed X" },
+    { "title": "Goal 2", "description": "Improve water quality in river Y" }
+  ],
+  "bmps": [
+    { "title": "Cover Crops", "description": "Plant cover crops in fallow fields", "category": "Soil" }
+  ],
+  ...
+}
+
 
         """
 
