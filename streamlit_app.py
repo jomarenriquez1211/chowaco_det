@@ -209,11 +209,16 @@ if uploaded_files:
                         
                         ---
                         
-                        For the CompletionRate, please assess the pdf_text and look for the activities and estimate the completion rate based on your understanding.
+                       For the `completionRate`, carefully analyze the entire input text for mentions of completed goal activities, BMP implementations, milestones, or progress statements.
 
-                             ```
+                        - Estimate the overall completion as a numeric percentage (0–100) reflecting the progress toward fulfilling all stated goals and BMPs.
+                        - Consider both explicit quantitative data (e.g., "70% complete") and qualitative descriptions indicating progress (e.g., "most activities have been finished", "implementation ongoing").
+                        - Use your best judgment to infer the level of completion even if exact figures are not provided.
+                        - Return **only** a single numeric value between 0 and 100, rounded to the nearest integer. No text, ranges, or explanations.
+                        - If no progress information is found, default to 0.
                         
-                        ⚠️ Return a single numeric value between `0` and `100` as `completionRate`. Do not return ranges or text.
+                        ⚠️ Do **not** calculate the completion rate by a fixed formula or ratio of counts but use your LLM reasoning to estimate overall progress based on the report content.
+
                         
                         ---
                         
