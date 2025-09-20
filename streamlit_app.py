@@ -154,23 +154,7 @@ if uploaded_file:
             -   `totalGoals`: the number of distinct goals found.
             -   `totalBMPs`: the total number of BMPs found.
             -   `completionRate`: a percentage estimate based on reported progress.
-        8.  Output your result as a valid JSON object that strictly follows the provided schema.
-
-        Extract and categorize based on this typescript:
-        interface ExtractedReport {
-         summary: {
-         totalGoals: number;
-         totalBMPs: number;
-         completionRate: number;
-         };
-         goals: Goal[];
-         bmps: BMP[];
-         implementation: ImplementationActivity[];
-         monitoring: MonitoringMetric[];
-         outreach: OutreachActivity[];
-         geographicAreas: GeographicArea[];
-        }
-        
+        8.  Output your result as a valid JSON object that strictly follows the provided schema.        
         """
 
         if st.button("Extract Structured Data"):
