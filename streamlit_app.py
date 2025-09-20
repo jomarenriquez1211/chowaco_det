@@ -156,42 +156,42 @@ if uploaded_files:
         
                         # The prompt is refined to align with the new, more detailed JSON schema.
                         prompt = f"""
-                        You are an intelligent data extraction assistant specialized in agricultural and environmental reports. Analyze the following text extracted from a PDF and extract relevant information according to the ExtractedReport JSON schema described below.
-                        
+                        You are a data extraction assistant specialized in agricultural and environmental reports.
+
                         Input Text:
                         {pdf_text}
                         
-                        Schema Description:
-                        You must produce a valid JSON object conforming to this structure:
+                        Extract the following data into JSON following this schema:
                         
-                        - summary: Object with totalGoals, totalBMPs, and completionRate (percentage 0–100).
-                        - goals: Array of goal objects, each with title and description.
-                        - bmps: Array of Best Management Practices (BMP) objects, each with title, description, and category.
-                        - implementation: Array of implementation activity objects, each with activity and description.
-                        - monitoring: Array of monitoring metric objects, each with activity and description.
-                        - outreach: Array of outreach activity objects, each with activity and description.
-                        - geographicAreas: Array of geographic area objects, each with name and description.
+                        - summary: with totalGoals (number), totalBMPs (number), and completionRate (number between 0-100).
+                        - goals: list of goal objects with title and description.
+                        - bmps: list of BMP objects with title, description, and category.
+                        - implementation: list of implementation activities with activity and description.
+                        - monitoring: list of monitoring activities with activity and description.
+                        - outreach: list of outreach activities with activity and description.
+                        - geographicAreas: list of geographic areas with name and description.
                         
-                        Category Definitions:
-                        - Goals: Main objectives or targets outlined in the report.
-                        - BMPs: Specific practices or methods recommended or implemented to meet goals.
-                        - Implementation: Actions or activities undertaken to apply BMPs or achieve goals.
-                        - Monitoring: Metrics or measurements used to track progress or outcomes.
-                        - Outreach: Activities aimed at community engagement, education, or communication.
-                        - Geographic Areas: Locations or regions relevant to the report.
+                        Category definitions:
+                        - Goals: main targets or objectives.
+                        - BMPs: best management practices recommended or implemented.
+                        - Implementation: actions taken to apply BMPs or achieve goals.
+                        - Monitoring: metrics or checks to track progress.
+                        - Outreach: community engagement and communication activities.
+                        - Geographic Areas: locations relevant to the report.
                         
                         Instructions:
+                        1. Extract data strictly according to these categories.
+                        2. Ensure data is placed only in its correct category.
+                        3. Provide all relevant entries, preserving detail.
                         
-                        1. Thoroughly understand the entire text, including hierarchical content like main points, sub-bullets, and examples.
-                        2. Extract all relevant information according to the schema categories above, ensuring each item is placed in its correct category.
-                        3. Accurately capture variations in formatting and document structure, ensuring no data is missed.
+                        After extraction:
                         
-                        Completion Rate Calculation:
-                        - Identify any explicit progress indicators in the text, such as percentages (e.g., "75% complete") or ratios (e.g., "3 of 4 activities finished"). If found, use these values directly as the completion rate.
-                        - If explicit progress information is not available, estimate the completion rate by calculating the percentage of completed activities relative to the total number of planned activities, goals, BMPs, monitoring metrics, and outreach activities.
-                        - The completion rate should be a single numeric value between 0 and 100 representing overall project progress.
+                        Calculate completionRate as follows:
+                        - Use explicit completion information in the text if available (e.g., "75% complete", "3 of 4 activities finished").
+                        - If no explicit info, estimate completionRate as (number of completed activities) / (total activities across goals, BMPs, implementation, monitoring, and outreach) * 100.
+                        - Provide completionRate as a single numeric value between 0 and 100.
                         
-                        Output a single valid JSON object strictly following the described schema, ready for use in dashboards and exports.
+                        Output a valid JSON strictly following the schema.
 
                         
                         """
