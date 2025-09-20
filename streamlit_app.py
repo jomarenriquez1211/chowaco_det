@@ -23,10 +23,12 @@ model = genai.GenerativeModel("gemini-1.5-flash-latest")
 st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
 st.title("📄 PDF to ExtractedReport JSON using Gemini")
 st.markdown(
-    "Upload a PDF file, and the app will extract structured data according to the `ExtractedReport` interface."
+    "Upload one or more PDF files, and the app will extract structured data according to the `ExtractedReport` interface."
 )
 
-uploaded_file = st.file_uploader("Drag and drop a PDF file here", type="pdf")
+uploaded_files = st.file_uploader(
+    "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
+)
 
 def extract_text_from_pdf(pdf_file):
     """Extract text from all pages of a PDF."""
@@ -126,91 +128,95 @@ json_schema = {
     "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"],
 }
 
-if uploaded_file:
-    st.subheader("Step 1️⃣ - Extract PDF Text")
-    pdf_text = extract_text_from_pdf(uploaded_file)
-
-    if not pdf_text.strip():
-        st.warning("No text could be extracted from the uploaded PDF.")
-    else:
-        st.text_area("Raw Extracted Text", pdf_text, height=300)
-
-        st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
-
-        # The prompt is refined to align with the new, more detailed JSON schema.
-        prompt = f"""
-        You are an intelligent data extraction assistant. Extract the following structured report from the text below, strictly following the provided JSON schema.
-
-        Text:
-        {pdf_text}
-
-        Instructions:
-        1.  Extract all goals mentioned in the report. For each goal, provide a `title` and a brief `description`.
-        2.  Extract all Best Management Practices (BMPs). For each, provide a `title`, a brief `description`, and a `category` (e.g., "Soil", "Water Quality", "Vegetation").
-        3.  Extract and list all implementation activities. For each, provide the `activity` name and a brief `description`.
-        4.  Extract and list all monitoring metrics. For each, provide the `metric` name and a brief `description` of what is being measured.
-        5.  Extract and list all outreach activities. For each, provide the `activity` name and a brief `description` of the effort.
-        6.  Extract all geographic areas mentioned, such as watersheds, counties, or regions. For each, provide the `name` and a brief `description`.
-        7.  Generate a `summary` object with:
-            -   `totalGoals`: the number of distinct goals found.
-            -   `totalBMPs`: the total number of BMPs found.
-            -   `completionRate`: a percentage estimate based on reported progress.
-        8.  Output your result as a valid JSON object that strictly follows the provided schema.
-
-        """
-
-        if st.button("Extract Structured Data"):
-            with st.spinner("Processing with Gemini..."):
-                try:
-                    response = model.generate_content(
-                        prompt,
-                        generation_config={
-                            "response_mime_type": "application/json",
-                            # Use the updated and correct schema.
-                            "response_schema": json_schema,
-                        },
-                    )
-                    # The response.text property contains the generated JSON string.
-                    structured_data = json.loads(response.text)
-
-                    st.subheader("ExtractedReport JSON")
-                    st.json(structured_data)
-
-                    # ------------------------
-                    # Statistical Dashboard
-                    # ------------------------
-                    if structured_data and "summary" in structured_data:
-                        st.subheader("Step 3️⃣ - Statistical Dashboard")
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric(label="Total Goals", value=structured_data["summary"]["totalGoals"])
-                        with col2:
-                            st.metric(label="Total BMPs", value=structured_data["summary"]["totalBMPs"])
-                        with col3:
-                            st.metric(label="Completion Rate", value=f'{structured_data["summary"]["completionRate"]}%')
-
-                        # Create a bar chart for categorical data
-                        st.markdown("### Report Content Breakdown")
-                        data_counts = {
-                            "Goals": structured_data["summary"]["totalGoals"],
-                            "BMPs": structured_data["summary"]["totalBMPs"],
-                            "Implementation Activities": len(structured_data.get("implementation", [])),
-                            "Monitoring Metrics": len(structured_data.get("monitoring", [])),
-                            "Outreach Activities": len(structured_data.get("outreach", [])),
-                            "Geographic Areas": len(structured_data.get("geographicAreas", [])),
-                        }
-                        
-                        df = pd.DataFrame(data_counts.items(), columns=["Category", "Count"])
-                        st.bar_chart(df.set_index("Category"))
-
-                    # Download button for the generated JSON file.
-                    st.download_button(
-                        "📥 Download JSON",
-                        data=json.dumps(structured_data, indent=2),
-                        file_name=f"{uploaded_file.name.replace('.pdf','')}_ExtractedReport.json",
-                        mime="application/json",
-                    )
-                except json.JSONDecodeError:
-                    st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
+if uploaded_files:
+    if st.button("Extract Structured Data from All Files"):
+        with st.spinner("Processing with Gemini..."):
+            for uploaded_file in uploaded_files:
+                st.markdown(f"### Processing `{uploaded_file.name}`")
+                
+                with st.expander("Show/Hide Processing Details"):
+                    st.subheader("Step 1️⃣ - Extract PDF Text")
+                    pdf_text = extract_text_from_pdf(uploaded_file)
+        
+                    if not pdf_text.strip():
+                        st.warning("No text could be extracted from the uploaded PDF.")
+                    else:
+                        st.text_area("Raw Extracted Text", pdf_text, height=300)
+        
+                        st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
+        
+                        # The prompt is refined to align with the new, more detailed JSON schema.
+                        prompt = f"""
+                        You are an intelligent data extraction assistant. Extract the following structured report from the text below, strictly following the provided JSON schema.
+        
+                        Text:
+                        {pdf_text}
+        
+                        Instructions:
+                        1.  Extract all goals mentioned in the report. For each goal, provide a `title` and a brief `description`.
+                        2.  Extract all Best Management Practices (BMPs). For each, provide a `title`, a brief `description`, and a `category` (e.g., "Soil", "Water Quality", "Vegetation").
+                        3.  Extract and list all implementation activities. For each, provide the `activity` name and a brief `description`.
+                        4.  Extract and list all monitoring metrics. For each, provide the `metric` name and a brief `description` of what is being measured.
+                        5.  Extract and list all outreach activities. For each, provide the `activity` name and a brief `description` of the effort.
+                        6.  Extract all geographic areas mentioned, such as watersheds, counties, or regions. For each, provide the `name` and a brief `description`.
+                        7.  Generate a `summary` object with:
+                            -   `totalGoals`: the number of distinct goals found.
+                            -   `totalBMPs`: the total number of BMPs found.
+                            -   `completionRate`: a percentage estimate based on reported progress.
+                        8.  Output your result as a valid JSON object that strictly follows the provided schema.
+        
+                        """
+        
+                        try:
+                            response = model.generate_content(
+                                prompt,
+                                generation_config={
+                                    "response_mime_type": "application/json",
+                                    # Use the updated and correct schema.
+                                    "response_schema": json_schema,
+                                },
+                            )
+                            # The response.text property contains the generated JSON string.
+                            structured_data = json.loads(response.text)
+        
+                            st.subheader("ExtractedReport JSON")
+                            st.json(structured_data)
+        
+                            # ------------------------
+                            # Statistical Dashboard
+                            # ------------------------
+                            if structured_data and "summary" in structured_data:
+                                st.subheader("Step 3️⃣ - Statistical Dashboard")
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.metric(label="Total Goals", value=structured_data["summary"]["totalGoals"])
+                                with col2:
+                                    st.metric(label="Total BMPs", value=structured_data["summary"]["totalBMPs"])
+                                with col3:
+                                    st.metric(label="Completion Rate", value=f'{structured_data["summary"]["completionRate"]}%')
+        
+                                # Create a bar chart for categorical data
+                                st.markdown("### Report Content Breakdown")
+                                data_counts = {
+                                    "Goals": structured_data["summary"]["totalGoals"],
+                                    "BMPs": structured_data["summary"]["totalBMPs"],
+                                    "Implementation Activities": len(structured_data.get("implementation", [])),
+                                    "Monitoring Metrics": len(structured_data.get("monitoring", [])),
+                                    "Outreach Activities": len(structured_data.get("outreach", [])),
+                                    "Geographic Areas": len(structured_data.get("geographicAreas", [])),
+                                }
+                                
+                                df = pd.DataFrame(data_counts.items(), columns=["Category", "Count"])
+                                st.bar_chart(df.set_index("Category"))
+        
+                            # Download button for the generated JSON file.
+                            st.download_button(
+                                "📥 Download JSON",
+                                data=json.dumps(structured_data, indent=2),
+                                file_name=f"{uploaded_file.name.replace('.pdf','')}_ExtractedReport.json",
+                                mime="application/json",
+                            )
+                        except json.JSONDecodeError:
+                            st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
+                        except Exception as e:
+                            st.error(f"An error occurred: {e}")
