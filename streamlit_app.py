@@ -191,25 +191,10 @@ if uploaded_files:
                         Output a single valid JSON object strictly following the described schema, ready for use in dashboards and exports.
 
                         Completion Rate Calculation Instructions:
-                        Look for explicit progress indicators in the text, such as:
-                        
-                        Percentages (e.g., “75% complete”)
-                        
-                        Ratios or fractions (e.g., “3 of 4 activities finished”)
-                        
-                        Phrases indicating progress or completion status
-                        
-                        If explicit progress information exists, use that directly as the completion rate.
-                        
-                        If no explicit progress data is found, estimate completion rate as follows:
-                        
-                        Count the number of completed items mentioned.
-                        
-                        Divide the number of completed items by the total number of items planned or referenced in the report.
-                        
-                        Convert this fraction to a percentage between 0 and 100.
-                        
-                        Always output a single numeric value (0–100) for completionRate, representing the overall progress of the project or report.
+                        - Identify any explicit progress indicators in the text, such as percentages (e.g., "75% complete") or ratios (e.g., "3 of 4 activities finished"). If found, use these values directly as the completion rate.
+                        - If explicit progress information is not available, estimate the completion rate by calculating the percentage of completed activities relative to the total number of planned activities, goals, BMPs, monitoring, and outreach tasks mentioned.
+                        - The completion rate should be a single numeric value between 0 and 100 representing overall project progress.
+
                         
                         """
         
