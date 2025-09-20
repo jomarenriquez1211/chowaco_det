@@ -6,4 +6,4 @@ openai
 google-generativeai
 google
 google.genai
-
+GPT4All
