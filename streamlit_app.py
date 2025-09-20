@@ -2,6 +2,7 @@ import streamlit as st
 import pdfplumber
 import json
 import google.generativeai as genai
+import pandas as pd
 
 # ------------------------
 # Gemini API setup
@@ -174,6 +175,33 @@ if uploaded_file:
 
                     st.subheader("ExtractedReport JSON")
                     st.json(structured_data)
+
+                    # ------------------------
+                    # Statistical Dashboard
+                    # ------------------------
+                    if structured_data and "summary" in structured_data:
+                        st.subheader("Step 3️⃣ - Statistical Dashboard")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric(label="Total Goals", value=structured_data["summary"]["totalGoals"])
+                        with col2:
+                            st.metric(label="Total BMPs", value=structured_data["summary"]["totalBMPs"])
+                        with col3:
+                            st.metric(label="Completion Rate", value=f'{structured_data["summary"]["completionRate"]}%')
+
+                        # Create a bar chart for categorical data
+                        st.markdown("### Report Content Breakdown")
+                        data_counts = {
+                            "Goals": structured_data["summary"]["totalGoals"],
+                            "BMPs": structured_data["summary"]["totalBMPs"],
+                            "Implementation Activities": len(structured_data.get("implementation", [])),
+                            "Monitoring Metrics": len(structured_data.get("monitoring", [])),
+                            "Outreach Activities": len(structured_data.get("outreach", [])),
+                            "Geographic Areas": len(structured_data.get("geographicAreas", [])),
+                        }
+                        
+                        df = pd.DataFrame(data_counts.items(), columns=["Category", "Count"])
+                        st.bar_chart(df.set_index("Category"))
 
                     # Download button for the generated JSON file.
                     st.download_button(
