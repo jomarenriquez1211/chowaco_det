@@ -157,74 +157,100 @@ if uploaded_files:
                         # The prompt is refined to align with the new, more detailed JSON schema.
                         prompt = f"""
                         You are a data extraction assistant specialized in agricultural and environmental reports.
-
-                        Input Text:
+                        
+                        Your task is to extract structured data from the input report text and return it as a valid JSON object that strictly follows the defined schema.
+                        
+                        ---
+                        
+                        ### 📄 Input Text:
                         {pdf_text}
                         
-                        Extract the following data into JSON following this schema:
+                        ---
                         
-                        Extract the following sections into JSON. Follow this structure exactly:
-
-                        - **summary**: Contains three numbers:
+                        ### 🧩 JSON Structure (Schema):
+                        
+                        Extract the following sections into JSON. Each field is required — include an empty array if no data is found.
+                        
+                        - **summary**:
                           - `totalGoals`: Total number of goal activities.
                           - `totalBMPs`: Total number of BMP activities.
-                          - `completionRate`: A number between 0–100 representing estimated completion.
+                          - `completionRate`: A number between 0–100 representing estimated completion (see calculation rules below).
                         
-                        - **goals**: Array of goal activity objects.
-                          - Each item must include:
+                        - **goals**: Array of goal objects.
+                          - Each must include:
                             - `title`: Short name of the goal.
-                            - `description`: A description of the goal's purpose or intent.
+                            - `description`: Explanation of the goal’s purpose or intent.
                         
-                        - **bmps**: Array of Best Management Practices (BMP) activity objects.
-                          - Each item must include:
+                        - **bmps**: Array of BMP (Best Management Practice) objects.
+                          - Each must include:
                             - `title`: Name of the BMP.
-                            - `description`: What the BMP involves.
-                            - `category`: Type or classification of the BMP.
+                            - `description`: Description of what it involves.
+                            - `category`: Type/classification of the BMP.
                         
                         - **implementation**: On-the-ground activities that were performed or executed.
-                          - Each item must include:
+                          - Each must include:
                             - `activity`: Short name of the implementation step.
-                            - `description`: Detailed explanation of what was implemented.
+                            - `description`: Details of what was implemented.
                         
-                        - **monitoring**: Array of activities for tracking or assessing progress.
-                          - Each item must include:
+                        - **monitoring**: Activities that track or assess progress.
+                          - Each must include:
                             - `activity`: Name of the monitoring action.
                             - `description`: What was monitored and how.
                         
                         - **outreach**: Community engagement or communication activities.
-                          - Each item must include:
+                          - Each must include:
                             - `activity`: Name of the outreach effort.
                             - `description`: Who was engaged and what was shared.
                         
-                        - **geographicAreas**: Array of regions or locations relevant to the report.
-                          - Each item must include:
+                        - **geographicAreas**: Locations relevant to the report.
+                          - Each must include:
                             - `name`: Name of the area.
-                            - `description`: Details about the location's role or relevance.
+                            - `description`: Details about its relevance.
                         
-                        Category definitions:
-                        - Goals: main targets or objectives.
-                        - BMPs: best management practices recommended or implemented.
-                        - Monitoring: metrics or checks to track progress.
-                        - Outreach: community engagement and communication activities.
-                        - Geographic Areas: locations relevant to the report.
-
-                        Instructions:
-                        1. Extract data strictly according to these categories.
-                        2. Ensure data is placed only in its correct category.
-                        3. Provide all relevant entries, preserving detail.
+                        ---
                         
-                        After extraction:
+                        ### 📊 Completion Rate Rules
                         
-                        Calculate completionRate as follows:
-                        - Use explicit completion information in the text if available (e.g., "75% complete", "3 of 4 activities finished").
-                        - If no explicit info, estimate completionRate as (number of completed activities) / (total activities across goals, BMPs, implementation, monitoring, and outreach) * 100.
-                        - Provide completionRate as a single numeric value between 0 and 100.
+                        Your goal is to extract or estimate the `completionRate` in the `summary` section based on the report.
                         
-                        Output a valid JSON strictly following the schema.
-
-
+                        1. **If the report includes an explicit percentage**, such as:
+                           - "75% complete"
+                           - "80 percent of activities done"
+                           → Use that value directly.
                         
+                        2. **If the report provides numerical progress**, such as:
+                           - "3 out of 4 activities completed"
+                           → Calculate: `(3 / 4) * 100 = 75`
+                        
+                        3. **If only vague indicators are given**, interpret as follows:
+                           - "fully completed", "entirely finished" → `100`
+                           - "mostly complete", "nearly done" → `80–90`
+                           - "partially complete", "in progress" → `40–60`
+                           - "ongoing", "just started" → `10–30`
+                           - "not started", "pending" → `0`
+                        
+                        4. If no completion info is available:
+                           - Estimate completionRate as:
+                             ```
+                             totalCompletedActivities = number of activities with indications of completion
+                             totalActivities = total number of goals, BMPs, implementation, monitoring, and outreach items
+                             completionRate = (totalCompletedActivities / totalActivities) * 100
+                             ```
+                        
+                        ⚠️ Return a single numeric value between `0` and `100` as `completionRate`. Do not return ranges or text.
+                        
+                        ---
+                        
+                        ### ✅ Output Instructions
+                        
+                        - Output **only** a valid JSON object.
+                        - All required fields must be included.
+                        - If no entries exist in a category, use an empty array.
+                        - Follow the schema strictly.
+                        
+                        Begin extraction now.
                         """
+
         
                         try:
                             response = model.generate_content(
