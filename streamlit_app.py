@@ -164,36 +164,34 @@ if uploaded_files:
                         Schema Description:
                         You must produce a valid JSON object conforming to this structure:
                         
-                        summary: Object with totalGoals, totalBMPs, and completionRate (percentage 0–100).
+                        - summary: Object with totalGoals, totalBMPs, and completionRate (percentage 0–100).
+                        - goals: Array of goal objects, each with title and description.
+                        - bmps: Array of Best Management Practices (BMP) objects, each with title, description, and category.
+                        - implementation: Array of implementation activity objects, each with activity and description.
+                        - monitoring: Array of monitoring metric objects, each with metric and description.
+                        - outreach: Array of outreach activity objects, each with activity and description.
+                        - geographicAreas: Array of geographic area objects, each with name and description.
                         
-                        goals: Array of goal activity objects, each with title and description.
-                        
-                        bmps: Array of Best Management Practices(BMP) activity objects, each with title, description, and category.
-                        
-                        implementation: Array of implementation activity objects, each with activity and description.
-                        
-                        monitoring: Array of monitoring activity objects, each with activity and description.
-                        
-                        outreach: Array of outreach activity objects, each with activity and description.
-                        
-                        geographicAreas: Array of geographic area objects, each with name and description.
+                        Category Definitions:
+                        - Goals: Main objectives or targets outlined in the report.
+                        - BMPs: Specific practices or methods recommended or implemented to meet goals.
+                        - Implementation: Actions or activities undertaken to apply BMPs or achieve goals.
+                        - Monitoring: Metrics or measurements used to track progress or outcomes.
+                        - Outreach: Activities aimed at community engagement, education, or communication.
+                        - Geographic Areas: Locations or regions relevant to the report.
                         
                         Instructions:
                         
-                        Thoroughly understand the entire text, including hierarchical content like main points, sub-bullets, and examples.
+                        1. Thoroughly understand the entire text, including hierarchical content like main points, sub-bullets, and examples.
+                        2. Extract all relevant information according to the schema categories above, ensuring each item is placed in its correct category.
+                        3. Accurately capture variations in formatting and document structure, ensuring no data is missed.
                         
-                        Extract all relevant information according to the schema categories above.
-                        
-                        Accurately capture variations in formatting and document structure, ensuring no data is missed.
-                        
-                        Provide counts and estimates in the summary object based on the extracted data and any reported progress indicators.
+                        Completion Rate Calculation:
+                        - Identify any explicit progress indicators in the text, such as percentages (e.g., "75% complete") or ratios (e.g., "3 of 4 activities finished"). If found, use these values directly as the completion rate.
+                        - If explicit progress information is not available, estimate the completion rate by calculating the percentage of completed activities relative to the total number of planned activities, goals, BMPs, monitoring metrics, and outreach activities.
+                        - The completion rate should be a single numeric value between 0 and 100 representing overall project progress.
                         
                         Output a single valid JSON object strictly following the described schema, ready for use in dashboards and exports.
-
-                        Completion Rate Calculation Instructions:
-                        - Identify any explicit progress indicators in the text, such as percentages (e.g., "75% complete") or ratios (e.g., "3 of 4 activities finished"). If found, use these values directly as the completion rate.
-                        - If explicit progress information is not available, estimate the completion rate by calculating the percentage of completed activities relative to the total number of planned activities, goals, BMPs, monitoring, and outreach tasks mentioned.
-                        - The completion rate should be a single numeric value between 0 and 100 representing overall project progress.
 
                         
                         """
