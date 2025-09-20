@@ -188,9 +188,9 @@ if uploaded_files:
                             - `category`: Type/classification of the BMP.
                         
                         - **implementation**: On-the-ground activities that were performed or executed.
-                          - Each must include:
+                          - Each item must include:
                             - `activity`: Short name of the implementation step.
-                            - `description`: Details of what was implemented.
+                            - `description`: Detailed explanation of what was implemented.
                         
                         - **monitoring**: Activities that track or assess progress.
                           - Each must include:
