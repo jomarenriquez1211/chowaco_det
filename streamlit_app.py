@@ -178,7 +178,20 @@ if uploaded_files:
                         - Outreach: community engagement and communication activities.
                         - Geographic Areas: locations relevant to the report.
 
+                        Instructions:
+                        1. Extract data strictly according to these categories.
+                        2. Ensure data is placed only in its correct category.
+                        3. Provide all relevant entries, preserving detail.
+                        
+                        After extraction:
+                        
+                        Calculate completionRate as follows:
+                        - Use explicit completion information in the text if available (e.g., "75% complete", "3 of 4 activities finished").
+                        - If no explicit info, estimate completionRate as (number of completed activities) / (total activities across goals, BMPs, implementation, monitoring, and outreach) * 100.
+                        - Provide completionRate as a single numeric value between 0 and 100.
+                        
                         Output a valid JSON strictly following the schema.
+
 
                         
                         """
