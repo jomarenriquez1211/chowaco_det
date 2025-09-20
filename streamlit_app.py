@@ -7,11 +7,13 @@ import google.generativeai as genai
 # Gemini API setup
 # ------------------------
 try:
+    # This assumes the API key is set in Streamlit's secrets.toml file.
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except KeyError:
     st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
     st.stop()
 
+# Use the latest available Gemini model for text generation.
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
 # ------------------------
@@ -38,7 +40,8 @@ def extract_text_from_pdf(pdf_file):
         st.error(f"Failed to read PDF: {e}")
     return text_output
 
-# JSON schema matching the ExtractedReport interface
+# Corrected JSON schema to match the detailed interface described in the prompt.
+# This schema is crucial for instructing the Gemini model on the exact output format.
 json_schema = {
     "type": "object",
     "properties": {
@@ -53,27 +56,70 @@ json_schema = {
         },
         "goals": {
             "type": "array",
-            "items": {"type": "object", "properties": {"name": {"type": "string"}}},
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["title", "description"]
+            },
         },
         "bmps": {
             "type": "array",
-            "items": {"type": "object", "properties": {"name": {"type": "string"}}},
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "category": {"type": "string"}
+                },
+                "required": ["title", "description", "category"]
+            },
         },
         "implementation": {
             "type": "array",
-            "items": {"type": "object", "properties": {"activity": {"type": "string"}}},
+            "items": {
+                "type": "object",
+                "properties": {
+                    "activity": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["activity", "description"]
+            },
         },
         "monitoring": {
             "type": "array",
-            "items": {"type": "object", "properties": {"metric": {"type": "string"}}},
+            "items": {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["metric", "description"]
+            },
         },
         "outreach": {
             "type": "array",
-            "items": {"type": "object", "properties": {"activity": {"type": "string"}}},
+            "items": {
+                "type": "object",
+                "properties": {
+                    "activity": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["activity", "description"]
+            },
         },
         "geographicAreas": {
             "type": "array",
-            "items": {"type": "object", "properties": {"name": {"type": "string"}}},
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["name", "description"]
+            },
         },
     },
     "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"],
@@ -90,60 +136,41 @@ if uploaded_file:
 
         st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
 
+        # The prompt is refined to align with the new, more detailed JSON schema.
         prompt = f"""
-        You are an intelligent data extraction assistant. Extract the following structured report from the text below.
+        You are an intelligent data extraction assistant. Extract the following structured report from the text below, strictly following the provided JSON schema.
 
         Text:
         {pdf_text}
 
-interface ExtractedReport {
-  summary: {
-    totalGoals: number;
-    totalBMPs: number;
-    completionRate: number;
-  };
-  goals: Goal[];
-  bmps: BMP[];
-  implementation: ImplementationActivity[];
-  monitoring: MonitoringMetric[];
-  outreach: OutreachActivity[];
-  geographicAreas: GeographicArea[];
-}
+        Instructions:
+        1.  Extract all goals mentioned in the report. For each goal, provide a `title` and a brief `description`.
+        2.  Extract all Best Management Practices (BMPs). For each, provide a `title`, a brief `description`, and a `category` (e.g., "Soil", "Water Quality", "Vegetation").
+        3.  Extract and list all implementation activities. For each, provide the `activity` name and a brief `description`.
+        4.  Extract and list all monitoring metrics. For each, provide the `metric` name and a brief `description` of what is being measured.
+        5.  Extract and list all outreach activities. For each, provide the `activity` name and a brief `description` of the effort.
+        6.  Extract all geographic areas mentioned, such as watersheds, counties, or regions. For each, provide the `name` and a brief `description`.
+        7.  Generate a `summary` object with:
+            -   `totalGoals`: the number of distinct goals found.
+            -   `totalBMPs`: the total number of BMPs found.
+            -   `completionRate`: a percentage estimate based on reported progress.
+        8.  Output your result as a valid JSON object that strictly follows the provided schema.
 
-Instructions:
-
-1. Identify and count all distinct goals mentioned in the report and populate the `goals` array. Each goal should have a title and description.
-2. Identify all Best Management Practices (BMPs) described, including associated details such as category, description, or implementation status, and populate the `bmps` array.
-3. Extract implementation activities and assign them to the `implementation` array, capturing details such as responsible parties, timeline, and related goals/BMPs.
-4. Extract monitoring metrics, such as measurements, indicators, or targets, and populate the `monitoring` array.
-5. Extract outreach activities such as workshops, training, or community engagement efforts and populate the `outreach` array.
-6. Identify geographic areas, such as watersheds, counties, or regions, and populate the `geographicAreas` array.
-7. Generate a `summary` object with:
-   - `totalGoals`: the number of distinct goals
-   - `totalBMPs`: the total number of BMPs
-   - `completionRate`: a percentage estimate based on reported progress
-8. Ignore irrelevant content and focus only on actionable, report-specific data.
-9. Output your result as a valid JSON object that strictly follows the `ExtractedReport` interface.
-
-Example output:
-
-{
-  "summary": {
-    "totalGoals": 3,
-    "totalBMPs": 12,
-    "completionRate": 75
-  },
-  "goals": [
-    { "title": "Goal 1", "description": "Reduce soil erosion in watershed X" },
-    { "title": "Goal 2", "description": "Improve water quality in river Y" }
-  ],
-  "bmps": [
-    { "title": "Cover Crops", "description": "Plant cover crops in fallow fields", "category": "Soil" }
-  ],
-  ...
-}
-
-
+        Extract and categorize based on this typescript:
+        interface ExtractedReport {
+         summary: {
+         totalGoals: number;
+         totalBMPs: number;
+         completionRate: number;
+         };
+         goals: Goal[];
+         bmps: BMP[];
+         implementation: ImplementationActivity[];
+         monitoring: MonitoringMetric[];
+         outreach: OutreachActivity[];
+         geographicAreas: GeographicArea[];
+        }
+        
         """
 
         if st.button("Extract Structured Data"):
@@ -153,14 +180,17 @@ Example output:
                         prompt,
                         generation_config={
                             "response_mime_type": "application/json",
+                            # Use the updated and correct schema.
                             "response_schema": json_schema,
                         },
                     )
+                    # The response.text property contains the generated JSON string.
                     structured_data = json.loads(response.text)
 
                     st.subheader("ExtractedReport JSON")
                     st.json(structured_data)
 
+                    # Download button for the generated JSON file.
                     st.download_button(
                         "📥 Download JSON",
                         data=json.dumps(structured_data, indent=2),
@@ -168,6 +198,6 @@ Example output:
                         mime="application/json",
                     )
                 except json.JSONDecodeError:
-                    st.error("The response could not be parsed as JSON. Check the PDF content.")
+                    st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
