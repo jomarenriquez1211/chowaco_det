@@ -175,7 +175,7 @@ if uploaded_files:
                         - Goals: main targets or objectives.
                         - BMPs: best management practices recommended or implemented.
                         - Implementation: actions taken to apply BMPs or achieve goals.
-                        - Monitoring: metrics or checks to track progress.
+                        - Monitoring: activity or checks to track progress.
                         - Outreach: community engagement and communication activities.
                         - Geographic Areas: locations relevant to the report.
                         
