@@ -211,7 +211,6 @@ if uploaded_files:
                         
                         Always output a single numeric value (0–100) for completionRate, representing the overall progress of the project or report.
                         
-                        Extraction of all individual items (goals, BMPs, activities, etc.) should be done independently and completely, regardless of progress information.
                         """
         
                         try:
