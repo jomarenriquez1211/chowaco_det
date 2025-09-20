@@ -54,9 +54,7 @@ json_schema = {
         "totalGoals": {"type": "number"},
         "totalBMPs": {"type": "number"},
         "completionRate": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100
+          "type": "number"
         }
       },
       "required": ["totalGoals", "totalBMPs", "completionRate"]
