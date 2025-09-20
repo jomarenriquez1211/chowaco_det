@@ -53,20 +53,25 @@ if uploaded_files:
                             mime="text/csv"
                         )
 
+                from PIL import Image
+
                 # ---- Extract images ----
                 images = page.images
                 if images:
                     st.markdown("**Images found:**")
-                    page_img = page.to_image(resolution=150)
+                    # render the whole page as an image
+                    page_img = page.to_image(resolution=150).original  # PIL.Image object
                     for img_idx, img in enumerate(images, start=1):
                         try:
-                            # Crop the page image using the bounding box of each PDF image
+                            # bbox coordinates in pixels
                             bbox = (img["x0"], img["top"], img["x1"], img["bottom"])
+                            # crop using PIL
                             cropped_img = page_img.crop(bbox)
-                            st.image(cropped_img.original, caption=f"Page {i} - Image {img_idx}")
+                            st.image(cropped_img, caption=f"Page {i} - Image {img_idx}")
                         except Exception as e:
                             st.warning(f"Could not extract image {img_idx} on page {i}: {e}")
-
+                
+                
         # Optional: show full text combined
         with st.expander("📑 Full Extracted Text (All Pages)"):
             st.text_area("Full Text", full_text, height=400)
