@@ -2,9 +2,7 @@ import streamlit as st
 import pdfplumber
 import json
 import base64
-import io
 import google.generativeai as genai
-from PIL import Image
 
 # ------------------------
 # Gemini API setup
@@ -15,16 +13,24 @@ except KeyError:
     st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
     st.stop()
 
+# Use the latest Gemini model
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
 # ------------------------
 # Streamlit UI
 # ------------------------
 st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
-st.title("📄 PDF to ExtractedReport JSON (Text + Images)")
+st.title("📄 PDF to ExtractedReport JSON with Images")
+
+st.markdown(
+    "Upload a PDF file, and the app will extract structured data including text and images."
+)
 
 uploaded_file = st.file_uploader("Drag and drop a PDF file here", type="pdf")
 
+# ------------------------
+# PDF Extraction Function
+# ------------------------
 def extract_pdf_content(pdf_file):
     """Extract text and images from all pages of a PDF."""
     text_output = ""
@@ -41,36 +47,104 @@ def extract_pdf_content(pdf_file):
                 # Extract images
                 for img_index, img in enumerate(page.images):
                     try:
-                        # Crop image from page
-                        x0, y0, x1, y1 = img["x0"], img["top"], img["x1"], img["bottom"]
-                        cropped_image = page.to_image().crop((x0, y0, x1, y1)).original
-                        buffered = io.BytesIO()
-                        cropped_image.save(buffered, format="PNG")
-                        img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-                        images_output.append({
-                            "page": i + 1,
-                            "image_index": img_index + 1,
-                            "data": img_b64
-                        })
+                        extracted_image = page.extract_image(img)
+                        if extracted_image:
+                            image_bytes = extracted_image["image"]
+                            img_b64 = base64.b64encode(image_bytes).decode("utf-8")
+                            images_output.append({
+                                "page": i + 1,
+                                "image_index": img_index + 1,
+                                "data": img_b64
+                            })
                     except Exception as e:
                         st.warning(f"Failed to extract image on page {i+1}, index {img_index}: {e}")
-
     except Exception as e:
         st.error(f"Failed to read PDF: {e}")
 
     return text_output, images_output
 
-# JSON schema including images
+# ------------------------
+# JSON Schema
+# ------------------------
 json_schema = {
     "type": "object",
     "properties": {
-        "summary": {"type": "object"},
-        "goals": {"type": "array"},
-        "bmps": {"type": "array"},
-        "implementation": {"type": "array"},
-        "monitoring": {"type": "array"},
-        "outreach": {"type": "array"},
-        "geographicAreas": {"type": "array"},
+        "summary": {
+            "type": "object",
+            "properties": {
+                "totalGoals": {"type": "number"},
+                "totalBMPs": {"type": "number"},
+                "completionRate": {"type": "number"},
+            },
+            "required": ["totalGoals", "totalBMPs", "completionRate"],
+        },
+        "goals": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["title", "description"]
+            },
+        },
+        "bmps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "category": {"type": "string"}
+                },
+                "required": ["title", "description", "category"]
+            },
+        },
+        "implementation": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "activity": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["activity", "description"]
+            },
+        },
+        "monitoring": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "metric": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["metric", "description"]
+            },
+        },
+        "outreach": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "activity": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["activity", "description"]
+            },
+        },
+        "geographicAreas": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "description": {"type": "string"}
+                },
+                "required": ["name", "description"]
+            },
+        },
         "images": {
             "type": "array",
             "items": {
@@ -81,61 +155,63 @@ json_schema = {
                     "data": {"type": "string"}
                 },
                 "required": ["page", "image_index", "data"]
-            }
+            },
         }
-    }
+    },
+    "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas", "images"],
 }
 
+# ------------------------
+# Streamlit Processing
+# ------------------------
 if uploaded_file:
-    st.subheader("Step 1️⃣ - Extract PDF Content")
+    st.subheader("Step 1️⃣ - Extract PDF Text and Images")
     pdf_text, pdf_images = extract_pdf_content(uploaded_file)
 
-    if not pdf_text.strip() and not pdf_images:
-        st.warning("No text or images could be extracted from the uploaded PDF.")
+    if not pdf_text.strip():
+        st.warning("No text could be extracted from the uploaded PDF.")
     else:
         st.text_area("Raw Extracted Text", pdf_text, height=300)
-        if pdf_images:
-            st.write(f"Extracted {len(pdf_images)} images from PDF pages")
 
-        st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
+    if pdf_images:
+        st.subheader("Extracted Images")
+        for img in pdf_images:
+            st.image(base64.b64decode(img["data"]), caption=f"Page {img['page']} - Image {img['image_index']}")
 
-        prompt = f"""
-        You are an intelligent data extraction assistant. Extract structured data from the text below.
-        Include all goals, BMPs, implementation activities, monitoring metrics, outreach activities,
-        and geographic areas. Include images extracted from the PDF in base64.
+    st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
+    prompt = f"""
+    Extract structured data including all goals, BMPs, implementation, monitoring, outreach,
+    geographic areas, and images from the following PDF text. Include all images in base64 format.
 
-        Text:
-        {pdf_text}
+    Text:
+    {pdf_text}
 
-        Images: There are {len(pdf_images)} images extracted from the PDF.
+    Images: {len(pdf_images)} extracted
+    """
 
-        Output must strictly follow the provided JSON schema including an `images` array.
-        """
+    if st.button("Extract Structured Data"):
+        with st.spinner("Processing with Gemini..."):
+            try:
+                response = model.generate_content(
+                    prompt,
+                    generation_config={
+                        "response_mime_type": "application/json",
+                        "response_schema": json_schema,
+                    },
+                )
+                structured_data = json.loads(response.text)
+                structured_data["images"] = pdf_images  # Include the images in JSON
 
-        if st.button("Extract Structured Data"):
-            with st.spinner("Processing with Gemini..."):
-                try:
-                    response = model.generate_content(
-                        prompt,
-                        generation_config={
-                            "response_mime_type": "application/json",
-                            "response_schema": json_schema,
-                        },
-                    )
-                    structured_data = json.loads(response.text)
-                    # Add extracted images to JSON
-                    structured_data["images"] = pdf_images
+                st.subheader("ExtractedReport JSON")
+                st.json(structured_data)
 
-                    st.subheader("ExtractedReport JSON")
-                    st.json(structured_data)
-
-                    st.download_button(
-                        "📥 Download JSON",
-                        data=json.dumps(structured_data, indent=2),
-                        file_name=f"{uploaded_file.name.replace('.pdf','')}_ExtractedReport.json",
-                        mime="application/json",
-                    )
-                except json.JSONDecodeError:
-                    st.error("Gemini returned an invalid JSON format.")
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
+                st.download_button(
+                    "📥 Download JSON",
+                    data=json.dumps(structured_data, indent=2),
+                    file_name=f"{uploaded_file.name.replace('.pdf','')}_ExtractedReport.json",
+                    mime="application/json",
+                )
+            except json.JSONDecodeError:
+                st.error("The response could not be parsed as JSON.")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
