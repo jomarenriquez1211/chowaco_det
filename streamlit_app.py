@@ -1,8 +1,6 @@
 import streamlit as st
 import pdfplumber
 import pandas as pd
-from PIL import Image
-import io
 
 st.set_page_config(page_title="PDF Full Extractor", layout="wide")
 st.title("📑 PDF Full Extractor (Text + Tables + Images)")
@@ -59,12 +57,13 @@ if uploaded_files:
                 images = page.images
                 if images:
                     st.markdown("**Images found:**")
-                    page_img = page.to_image()
+                    page_img = page.to_image(resolution=150)
                     for img_idx, img in enumerate(images, start=1):
                         try:
+                            # Crop the page image using the bounding box of each PDF image
                             bbox = (img["x0"], img["top"], img["x1"], img["bottom"])
-                            cropped_img = page_img.within_bbox(bbox).original
-                            st.image(cropped_img, caption=f"Page {i} - Image {img_idx}")
+                            cropped_img = page_img.crop(bbox)
+                            st.image(cropped_img.original, caption=f"Page {i} - Image {img_idx}")
                         except Exception as e:
                             st.warning(f"Could not extract image {img_idx} on page {i}: {e}")
 
