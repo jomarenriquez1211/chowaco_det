@@ -220,7 +220,7 @@ if uploaded_files:
                            - "3 out of 4 activities completed"
                            → Calculate: `(3 / 4) * 100 = 75` and use that as completionRate.
                         
-                        3. **If the report uses qualitative or vague indicators**, interpret them as approximate numeric values:
+                        3. **If the report uses like such indicators below**, interpret them as approximate numeric values:
                            - "fully completed", "entirely finished" → 100
                            - "mostly complete", "nearly done" → 80 to 90
                            - "partially complete", "in progress" → 40 to 60
