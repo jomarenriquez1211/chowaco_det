@@ -212,29 +212,34 @@ if uploaded_files:
                         ### 📊 Completion Rate Rules
                         
                         Your goal is to extract or estimate the `completionRate` in the `summary` section based on the report.
-                        
+
                         1. **If the report includes an explicit percentage**, such as:
                            - "75% complete"
                            - "80 percent of activities done"
-                           → Use that value directly.
+                           → Use that exact value directly as the completionRate.
                         
                         2. **If the report provides numerical progress**, such as:
                            - "3 out of 4 activities completed"
-                           → Calculate: `(3 / 4) * 100 = 75`
+                           → Calculate: `(3 / 4) * 100 = 75` and use that as completionRate.
                         
-                        3. **If only vague indicators are given**, interpret as follows:
+                        3. **If the report uses qualitative or vague indicators**, interpret them as approximate numeric ranges:
                            - "fully completed", "entirely finished" → `100`
-                           - "mostly complete", "nearly done" → `80–90`
-                           - "partially complete", "in progress" → `40–60`
-                           - "ongoing", "just started" → `10–30`
+                           - "mostly complete", "nearly done" → `80 to 90`
+                           - "partially complete", "in progress" → `40 to 60`
+                           - "ongoing", "just started" → `10 to 30`
+                           - "very little work completed" → `5 to 10`
                            - "not started", "pending" → `0`
                         
-                        4. If no completion info is available:
-                           - Estimate completionRate as:
+                        4. **If no explicit numeric or qualitative completion information is available:**
+                           - Estimate completionRate as follows:
                              ```
-                             totalCompletedActivities = number of activities with indications of completion
+                             totalCompletedActivities = count of activities with indications of completion
                              totalActivities = total number of goals, BMPs, implementation, monitoring, and outreach items
                              completionRate = (totalCompletedActivities / totalActivities) * 100
+                             ```
+                           
+                        5. Always provide the completionRate as a single numeric value between 0 and 100.
+
                              ```
                         
                         ⚠️ Return a single numeric value between `0` and `100` as `completionRate`. Do not return ranges or text.
