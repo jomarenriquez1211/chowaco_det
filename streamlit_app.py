@@ -5,21 +5,31 @@ import openai
 import json
 import os
 
+# ---------------------------
+# Configure OpenAI API key
+# ---------------------------
 openai.api_key = "YOUR_OPENAI_API_KEY"
 
 st.title("📑 PDF Extractor (LLM + Regex Hybrid)")
 
+# ---------------------------
+# File uploader
+# ---------------------------
 uploaded_files = st.file_uploader(
     "Upload one or more PDF files",
     type="pdf",
     accept_multiple_files=True
 )
 
+# ---------------------------
 # Output folder
+# ---------------------------
 output_dir = "extracted_reports"
 os.makedirs(output_dir, exist_ok=True)
 
-# Regex pre-fill function for summary
+# ---------------------------
+# Helper: Regex extraction for summary
+# ---------------------------
 def regex_extract(text):
     total_goals = len(re.findall(r"Goal\s+\d+", text, re.IGNORECASE))
     total_bmps = len(re.findall(r"BMP\s+\d+", text, re.IGNORECASE))
@@ -31,7 +41,9 @@ def regex_extract(text):
         "completionRate": completion_rate
     }
 
-# Extract PDF text
+# ---------------------------
+# Helper: Extract PDF text
+# ---------------------------
 def extract_pdf_text(file):
     full_text = ""
     with pdfplumber.open(file) as pdf:
@@ -40,7 +52,9 @@ def extract_pdf_text(file):
             full_text += text + "\n"
     return full_text
 
-# LLM extraction function
+# ---------------------------
+# Helper: LLM extraction using ChatGPT (new SDK)
+# ---------------------------
 def llm_extract(text):
     prompt = f"""
     Extract a structured report from the following text and format it as JSON
@@ -59,21 +73,21 @@ def llm_extract(text):
       "geographicAreas": []
     }}
 
-    Make sure all fields are present, even if empty.
+    Ensure all fields are present even if empty arrays.
     """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts structured JSON from reports."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0
-    )
-
-    output_text = response.choices[0].message['content']
-
     try:
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that extracts structured JSON from reports."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0
+        )
+
+        output_text = response.choices[0].message["content"]
+
         return json.loads(output_text)
     except json.JSONDecodeError:
         # fallback to regex summary and empty arrays
@@ -86,8 +100,21 @@ def llm_extract(text):
             "outreach": [],
             "geographicAreas": []
         }
+    except Exception as e:
+        st.error(f"LLM extraction failed: {e}")
+        return {
+            "summary": regex_extract(text),
+            "goals": [],
+            "bmps": [],
+            "implementation": [],
+            "monitoring": [],
+            "outreach": [],
+            "geographicAreas": []
+        }
 
-# Process uploaded PDFs
+# ---------------------------
+# Main processing
+# ---------------------------
 if uploaded_files:
     for file in uploaded_files:
         st.write(f"Processing: {file.name}")
