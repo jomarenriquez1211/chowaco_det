@@ -8,7 +8,7 @@ import os
 # ---------------------------
 # Configure OpenAI API key
 # ---------------------------
-openai.api_key = "YOUR_OPENAI_API_KEY"
+openai.api_key = "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"
 
 st.title("📑 PDF Extractor (LLM + Regex Hybrid)")
 
