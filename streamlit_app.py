@@ -1,13 +1,22 @@
 import streamlit as st
-from openai import OpenAI
+from gpt4all import GPT4All
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+st.set_page_config(page_title="Local Chatbot")
 
-prompt = st.text_input("Enter your prompt:")
-if st.button("Generate"):
-    if prompt:
-        completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # <-- free-tier model
-            messages=[{"role": "user", "content": prompt}]
-        )
-        st.write(completion.choices[0].message.content)
+# Load the model (first run will download it)
+model = GPT4All("mistral-7b-openorca.gguf2.Q4_0.gguf")
+
+st.title("💬 Local Chatbot (GPT4All)")
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+user_input = st.text_input("You:", "")
+
+if st.button("Send") and user_input:
+    st.session_state.history.append(("You", user_input))
+    output = model.generate(user_input, max_tokens=200)
+    st.session_state.history.append(("Bot", output))
+
+for role, text in st.session_state.history:
+    st.markdown(f"**{role}:** {text}")
