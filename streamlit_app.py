@@ -155,7 +155,7 @@ if uploaded_files:
                         st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
         
                         # The prompt is refined to align with the new, more detailed JSON schema.
-                        f""" You are an intelligent data extraction assistant specialized in agricultural and environmental reports. Analyze the following text extracted from a PDF and extract relevant information according to the ExtractedReport JSON schema described below. 
+                        promt = f""" You are an intelligent data extraction assistant specialized in agricultural and environmental reports. Analyze the following text extracted from a PDF and extract relevant information according to the ExtractedReport JSON schema described below. 
                         Input Text: {pdf_text} 
                         Schema Description: You must produce a valid JSON object conforming to this structure: 
                         summary: Object with totalGoals, totalBMPs, and completionRate (percentage 0–100). 
