@@ -168,7 +168,7 @@ if uploaded_files:
                         
                         goals: Array of goal objects, each with title and description.
                         
-                        bmps: Array of BMP objects, each with title, description, and category.
+                        bmps: Array of Best Management Practices(BMP) objects, each with title, description, and category.
                         
                         implementation: Array of implementation activity objects, each with activity and description.
                         
