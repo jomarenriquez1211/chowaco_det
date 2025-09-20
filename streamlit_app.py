@@ -102,7 +102,7 @@ json_schema = {
         "type": "object",
         "properties": {
           "id": {"type": "string"},
-          "metric": {"type": "string"},
+          "activity": {"type": "string"},
           "description": {"type": "string"}
         },
         "required": ["activity", "description"]
