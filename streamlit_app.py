@@ -26,8 +26,7 @@ st.markdown(
     "Upload a PDF file, and the app will extract structured data according to the `ExtractedReport` interface."
 )
 
-uploaded_file = st.file_uploader("Drag and drop PDF files here", type="pdf", accept_multiple_files=True)
-
+uploaded_file = st.file_uploader("Drag and drop a PDF file here", type="pdf")
 
 def extract_text_from_pdf(pdf_file):
     """Extract text from all pages of a PDF."""
