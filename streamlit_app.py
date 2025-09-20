@@ -107,7 +107,6 @@ if uploaded_file:
             geographicAreas: GeographicArea[];
         }}
 
-        Do not include any additional text or formatting.
         """
 
         if st.button("Extract Structured Data"):
