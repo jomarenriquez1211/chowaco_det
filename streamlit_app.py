@@ -1,5 +1,8 @@
 import streamlit as st
 import pdfplumber
+import pandas as pd
+from PIL import Image
+import io
 
 st.set_page_config(page_title="PDF Full Extractor", layout="wide")
 st.title("📑 PDF Full Extractor (Text + Tables + Images)")
@@ -20,40 +23,59 @@ if uploaded_files:
     )
 
     for file in uploaded_files:
-        if file.name in selected_files:
-            st.subheader(f"📘 Extracted Content from {file.name}")
-            
-            with pdfplumber.open(file) as pdf:
-                full_text = ""
+        if file.name not in selected_files:
+            continue
 
-                for i, page in enumerate(pdf.pages, start=1):
-                    st.markdown(f"### 📄 Page {i}")
+        st.subheader(f"📘 Extracted Content from {file.name}")
+        with pdfplumber.open(file) as pdf:
+            full_text = ""
 
-                    # ---- Extract text ----
-                    text = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
-                    full_text += text + "\n\n"
-                    if text.strip():
-                        st.text_area(f"Text (Page {i})", text, height=200, key=f"{file.name}_text_{i}")
+            for i, page in enumerate(pdf.pages, start=1):
+                st.markdown(f"### 📄 Page {i}")
 
-                    # ---- Extract tables ----
-                    tables = page.extract_tables()
-                    for table in tables:
-                        st.markdown("**Table found:**")
-                        for row in table:
-                            st.write(" | ".join(cell or "" for cell in row))
+                # ---- Extract text ----
+                text = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
+                full_text += text + "\n\n"
+                if text.strip():
+                    st.text_area(f"Text (Page {i})", text, height=200, key=f"{file.name}_text_{i}")
 
-                    # ---- Extract images ----
-                    images = page.images
-                    if images:
-                        st.markdown("**Images found:**")
-                        for img_idx, img in enumerate(images, start=1):
-                            try:
-                                # Crop image from PDF
-                                image = page.crop((img["x0"], img["top"], img["x1"], img["bottom"])).to_image()
-                                st.image(image.original, caption=f"Page {i} - Image {img_idx}")
-                            except Exception as e:
-                                st.warning(f"Could not extract image {img_idx} on page {i}: {e}")
+                # ---- Extract tables ----
+                tables = page.extract_tables()
+                if tables:
+                    st.markdown("**Tables found:**")
+                    for tbl_idx, table in enumerate(tables, start=1):
+                        df = pd.DataFrame(table[1:], columns=table[0])
+                        st.dataframe(df)
+                        # Optional: download table as CSV
+                        csv = df.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            label=f"Download Table {tbl_idx} (Page {i}) as CSV",
+                            data=csv,
+                            file_name=f"{file.name}_page{i}_table{tbl_idx}.csv",
+                            mime="text/csv"
+                        )
 
-            # Optional: show full text combined
-            with st.expander("📑 Full Extracted Text (All Pages)"):
-                st.text_area("Full Text", full_text, height=400)
+                # ---- Extract images ----
+                images = page.images
+                if images:
+                    st.markdown("**Images found:**")
+                    page_img = page.to_image()
+                    for img_idx, img in enumerate(images, start=1):
+                        try:
+                            bbox = (img["x0"], img["top"], img["x1"], img["bottom"])
+                            cropped_img = page_img.within_bbox(bbox).original
+                            st.image(cropped_img, caption=f"Page {i} - Image {img_idx}")
+                        except Exception as e:
+                            st.warning(f"Could not extract image {img_idx} on page {i}: {e}")
+
+        # Optional: show full text combined
+        with st.expander("📑 Full Extracted Text (All Pages)"):
+            st.text_area("Full Text", full_text, height=400)
+
+        # Optional: download full text
+        st.download_button(
+            label="Download Full Text",
+            data=full_text,
+            file_name=f"{file.name}_full_text.txt",
+            mime="text/plain"
+        )
