@@ -2,7 +2,7 @@ import streamlit as st
 from openai import OpenAI
 
 # Correct access from secrets
-client = OpenAI(api_key=st.secrets["api_key"])
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 prompt = st.text_input("Enter your prompt:")
 if prompt:
