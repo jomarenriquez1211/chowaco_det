@@ -1,7 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+client = OpenAI(api_key=st.secrets["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"])
 
 prompt = st.text_input("Enter your prompt:")
 if prompt:
