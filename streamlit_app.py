@@ -155,6 +155,13 @@ if uploaded_file:
             -   `totalBMPs`: the total number of BMPs found.
             -   `completionRate`: a percentage estimate based on reported progress.
         8.  Output your result as a valid JSON object that strictly follows the provided schema.        
+
+        Accuracy Requirements
+        1. ≥90% accuracy in identifying main goals, BMPs and activities
+        2. ≥90% accuracy in extracting quantitative metrics
+        3. Zero false positives for exact copied content (e.g. name of something)
+        4 Proper categorization of different content types
+
         """
 
         if st.button("Extract Structured Data"):
