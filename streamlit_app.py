@@ -190,7 +190,7 @@ if uploaded_files:
                         
                         If explicit completion percentages are provided (e.g., "75% complete," "3 of 4 activities finished"), use those values directly.
                         
-                        If not explicitly stated, estimate the overall completion rate by comparing the number of completed items to the total planned items across goals, BMPs, implementation activities, monitoring metrics, and outreach activities.
+                        If not explicitly stated, estimate the overall completion rate by comparing the number of completed items to the total planned items across goals, BMPs, implementation activities, monitoring activities, and outreach activities.
                         
                         The completionRate should be a single numeric value between 0 and 100, representing the overall percentage of project completion.
                         
