@@ -166,9 +166,9 @@ if uploaded_files:
                         
                         summary: Object with totalGoals, totalBMPs, and completionRate (percentage 0–100).
                         
-                        goals: Array of goal objects, each with title and description.
+                        goals: Array of goal activity objects, each with title and description.
                         
-                        bmps: Array of Best Management Practices(BMP) objects, each with title, description, and category.
+                        bmps: Array of Best Management Practices(BMP) activity objects, each with title, description, and category.
                         
                         implementation: Array of implementation activity objects, each with activity and description.
                         
