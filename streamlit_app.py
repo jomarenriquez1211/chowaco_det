@@ -163,7 +163,7 @@ if uploaded_files:
                         
                         Extract the following data into JSON following this schema:
                         
-                        - summary: with totalGoals (number), totalBMPs (number), and completionRate (number between 0-100).
+                        -summary: with totalGoals (number), totalBMPs (number), and completionRate (number between 0-100).
                         -goals: Array of goal activity objects, each with title and description. 
                         -bmps: Array of Best Management Practices(BMP) activity objects, each with title, description, and category. 
                         -implementation: Array of implementation activity objects, each with activity and description. 
@@ -182,6 +182,8 @@ if uploaded_files:
                         1. Extract data strictly according to these categories.
                         2. Ensure data is placed only in its correct category.
                         3. Provide all relevant entries, preserving detail.
+                        4. If no data is found for a category, include it as an empty array (e.g., `"monitoring": []`)
+                        5. Do not skip any required fields.
                         
                         After extraction:
                         
