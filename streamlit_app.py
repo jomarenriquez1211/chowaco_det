@@ -105,7 +105,7 @@ json_schema = {
           "metric": {"type": "string"},
           "description": {"type": "string"}
         },
-        "required": ["metric", "description"]
+        "required": ["activity", "description"]
       }
     },
     "outreach": {
@@ -172,7 +172,7 @@ if uploaded_files:
                         
                         implementation: Array of implementation activity objects, each with activity and description.
                         
-                        monitoring: Array of monitoring activity objects, each with activivty and description.
+                        monitoring: Array of monitoring activity objects, each with activity and description.
                         
                         outreach: Array of outreach activity objects, each with activity and description.
                         
