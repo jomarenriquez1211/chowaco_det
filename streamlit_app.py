@@ -172,7 +172,7 @@ if uploaded_files:
                         
                         implementation: Array of implementation activity objects, each with activity and description.
                         
-                        monitoring: Array of monitoring metric objects, each with metric and description.
+                        monitoring: Array of monitoring activity objects, each with activivty and description.
                         
                         outreach: Array of outreach activity objects, each with activity and description.
                         
