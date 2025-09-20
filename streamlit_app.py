@@ -1,26 +1,56 @@
 import streamlit as st
 import pdfplumber
 import json
-import google.generativeai as genai
+import requests
 
 # ------------------------
-# Gemini API setup
+# DeepSeek API setup
 # ------------------------
 try:
     # This assumes the API key is set in Streamlit's secrets.toml file.
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
 except KeyError:
-    st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
+    st.error("API key not found. Please add `DEEPSEEK_API_KEY` to your Streamlit secrets.")
     st.stop()
 
-# Use the latest available Gemini model for text generation.
-model = genai.GenerativeModel("gemini-1.5-flash-latest")
+DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
+
+def call_deepseek_api(prompt):
+    """Call DeepSeek API with the given prompt and return the response."""
+    headers = {
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [
+            {
+                "role": "system", 
+                "content": "You are an intelligent data extraction assistant. Extract structured report data and return valid JSON format only."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"}
+    }
+    
+    try:
+        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        st.error(f"API call failed: {e}")
+        return None
 
 # ------------------------
 # Streamlit UI
 # ------------------------
 st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
-st.title("📄 PDF to ExtractedReport JSON using Gemini")
+st.title("📄 PDF to ExtractedReport JSON using DeepSeek")
 st.markdown(
     "Upload a PDF file, and the app will extract structured data according to the `ExtractedReport` interface."
 )
@@ -40,8 +70,7 @@ def extract_text_from_pdf(pdf_file):
         st.error(f"Failed to read PDF: {e}")
     return text_output
 
-# Corrected JSON schema to match the detailed interface described in the prompt.
-# This schema is crucial for instructing the Gemini model on the exact output format.
+# JSON schema for the expected output
 json_schema = {
     "type": "object",
     "properties": {
@@ -136,11 +165,13 @@ if uploaded_file:
 
         st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
 
-        # The prompt is refined to align with the new, more detailed JSON schema.
+        # The prompt for DeepSeek
         prompt = f"""
-        You are an intelligent data extraction assistant. Extract the following structured report from the text below, strictly following the provided JSON schema.
+        Extract the following structured report from the text below, strictly following this JSON schema:
 
-        Text:
+        {json.dumps(json_schema, indent=2)}
+
+        Text to analyze:
         {pdf_text}
 
         Instructions:
@@ -154,35 +185,35 @@ if uploaded_file:
             -   `totalGoals`: the number of distinct goals found.
             -   `totalBMPs`: the total number of BMPs found.
             -   `completionRate`: a percentage estimate based on reported progress.
-        8.  Output your result as a valid JSON object that strictly follows the provided schema.
-
+        8.  Return ONLY valid JSON that strictly follows the provided schema, with no additional text.
         """
 
         if st.button("Extract Structured Data"):
-            with st.spinner("Processing with Gemini..."):
+            with st.spinner("Processing with DeepSeek..."):
                 try:
-                    response = model.generate_content(
-                        prompt,
-                        generation_config={
-                            "response_mime_type": "application/json",
-                            # Use the updated and correct schema.
-                            "response_schema": json_schema,
-                        },
-                    )
-                    # The response.text property contains the generated JSON string.
-                    structured_data = json.loads(response.text)
+                    # Call DeepSeek API
+                    response_text = call_deepseek_api(prompt)
+                    
+                    if response_text:
+                        # Parse the JSON response
+                        structured_data = json.loads(response_text)
+                        
+                        st.subheader("ExtractedReport JSON")
+                        st.json(structured_data)
 
-                    st.subheader("ExtractedReport JSON")
-                    st.json(structured_data)
-
-                    # Download button for the generated JSON file.
-                    st.download_button(
-                        "📥 Download JSON",
-                        data=json.dumps(structured_data, indent=2),
-                        file_name=f"{uploaded_file.name.replace('.pdf','')}_ExtractedReport.json",
-                        mime="application/json",
-                    )
-                except json.JSONDecodeError:
-                    st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
+                        # Download button for the generated JSON file.
+                        st.download_button(
+                            "📥 Download JSON",
+                            data=json.dumps(structured_data, indent=2),
+                            file_name=f"{uploaded_file.name.replace('.pdf','')}_ExtractedReport.json",
+                            mime="application/json",
+                        )
+                    else:
+                        st.error("Failed to get response from DeepSeek API")
+                        
+                except json.JSONDecodeError as e:
+                    st.error(f"Failed to parse JSON response: {e}")
+                    st.text("Raw response for debugging:")
+                    st.text(response_text)
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
