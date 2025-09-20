@@ -225,7 +225,7 @@ if uploaded_files:
                            - "mostly complete", "nearly done" → 80 to 90
                            - "partially complete", "in progress" → 40 to 60
                            - "ongoing", "just started" → 10 to 30
-                           - "very little work completed" → 5 to 10
+                           - "very little work had been completed" → 5 to 10
                            - "not started", "pending" → 0
                         
                         4. **If no explicit numeric or qualitative completion info is found:**
