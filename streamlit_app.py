@@ -203,7 +203,7 @@ if uploaded_files:
                         
                         If no explicit progress data is found, estimate completion rate as follows:
                         
-                        Count the number of completed items mentioned (goals, BMPs, implementation activities, monitoring metrics, outreach activities).
+                        Count the number of completed items mentioned.
                         
                         Divide the number of completed items by the total number of items planned or referenced in the report.
                         
