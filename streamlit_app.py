@@ -69,42 +69,54 @@ if uploaded_file:
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "properties": { "name": { "type": "string" } }
+                    "properties": {
+                        "name": {"type": "string"},
+                    }
                 },
             },
             "bmps": {
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "properties": { "name": { "type": "string" } }
+                    "properties": {
+                        "name": {"type": "string"},
+                    }
                 },
             },
             "implementation": {
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "properties": { "activity": { "type": "string" } }
+                    "properties": {
+                        "activity": {"type": "string"},
+                    }
                 },
             },
             "monitoring": {
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "properties": { "metric": { "type": "string" } }
+                    "properties": {
+                        "metric": {"type": "string"},
+                    }
                 },
             },
             "outreach": {
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "properties": { "activity": { "type": "string" } }
+                    "properties": {
+                        "activity": {"type": "string"},
+                    }
                 },
             },
             "geographicAreas": {
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "properties": { "name": { "type": "string" } }
+                    "properties": {
+                        "name": {"type": "string"},
+                    }
                 },
             },
         },
