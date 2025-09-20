@@ -163,13 +163,43 @@ if uploaded_files:
                         
                         Extract the following data into JSON following this schema:
                         
-                        -summary: with totalGoals (number), totalBMPs (number), and completionRate (number between 0-100).
-                        -goals: Array of goal activity objects, each with title and description. 
-                        -bmps: Array of Best Management Practices(BMP) activity objects, each with title, description, and category. 
-                        -implementation: Array of implementation activity objects, each with activity and description.
-                        -monitoring: Array of monitoring activity objects, each with activity and description. 
-                        -outreach: Array of outreach activity objects, each with activity and description. 
-                        -geographicAreas: Array of geographic area objects, each with name and description.
+                        Extract the following sections into JSON. Follow this structure exactly:
+
+                        - **summary**: Contains three numbers:
+                          - `totalGoals`: Total number of goal activities.
+                          - `totalBMPs`: Total number of BMP activities.
+                          - `completionRate`: A number between 0–100 representing estimated completion.
+                        
+                        - **goals**: Array of goal activity objects.
+                          - Each item must include:
+                            - `title`: Short name of the goal.
+                            - `description`: A description of the goal's purpose or intent.
+                        
+                        - **bmps**: Array of Best Management Practices (BMP) activity objects.
+                          - Each item must include:
+                            - `title`: Name of the BMP.
+                            - `description`: What the BMP involves.
+                            - `category`: Type or classification of the BMP.
+                        
+                        - **implementation**: On-the-ground activities that were performed or executed.
+                          - Each item must include:
+                            - `activity`: Short name of the implementation step.
+                            - `description`: Detailed explanation of what was implemented.
+                        
+                        - **monitoring**: Array of activities for tracking or assessing progress.
+                          - Each item must include:
+                            - `activity`: Name of the monitoring action.
+                            - `description`: What was monitored and how.
+                        
+                        - **outreach**: Community engagement or communication activities.
+                          - Each item must include:
+                            - `activity`: Name of the outreach effort.
+                            - `description`: Who was engaged and what was shared.
+                        
+                        - **geographicAreas**: Array of regions or locations relevant to the report.
+                          - Each item must include:
+                            - `name`: Name of the area.
+                            - `description`: Details about the location's role or relevance.
                         
                         Category definitions:
                         - Goals: main targets or objectives.
