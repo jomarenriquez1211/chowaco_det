@@ -189,6 +189,12 @@ if uploaded_files:
                         Provide counts and estimates in the summary object based on the extracted data and any reported progress indicators.
                         
                         Output a single valid JSON object strictly following the described schema, ready for use in dashboards and exports.
+
+                        For the calculation of Completion Rate use the criteria below:
+                        1. Identify any explicit progress or completion information in the text, such as percentages, ratios, or statements indicating how much of the project, goals, BMPs, or activities have been completed.
+                        2. If explicit completion percentages are provided (e.g., "75% complete," "3 of 4 activities finished"), use those values directly.
+                        3. If not explicitly stated, estimate the overall completion rate by comparing the number of completed items to the total planned items across goals, BMPs, implementation activities, monitoring activities, and outreach activities.
+                        4. The completionRate should be a single numeric value between 0 and 100, representing the overall percentage of project completion.
         
                         """
         
