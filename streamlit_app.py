@@ -174,21 +174,11 @@ if uploaded_files:
                         Category definitions:
                         - Goals: main targets or objectives.
                         - BMPs: best management practices recommended or implemented.
+                        - Implementation: actions taken to apply BMPs or achieve goals.
+                        - Monitoring: metrics or checks to track progress.
+                        - Outreach: community engagement and communication activities.
                         - Geographic Areas: locations relevant to the report.
-                        
-                        Instructions:
-                        1. Extract data strictly according to these categories.
-                        2. Ensure data is placed only in its correct category.
-                        3. Provide all relevant entries, preserving detail.
-                        4. If no data is found for a category, include it as an empty array (e.g., `"monitoring": []`)
-                        5. Do not skip any required fields.
-                        
-                        After extraction:
-                        
-                        Calculate completionRate as follows:
-                        - Use explicit completion information in the text if available (e.g., "75% complete", "3 of 4 activities finished").
-                        - Provide completionRate as a single numeric value between 0 and 100.
-                        
+
                         Output a valid JSON strictly following the schema.
 
                         
