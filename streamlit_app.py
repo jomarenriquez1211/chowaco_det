@@ -2,8 +2,7 @@ import streamlit as st
 from openai import OpenAI
 
 # Temporary direct API key (only for testing locally!)
-client = OpenAI(api_key="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")
-
+client = OpenAI(api_key="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")
 prompt = st.text_input("Enter your prompt:")
 if prompt:
     completion = client.chat.completions.create(
