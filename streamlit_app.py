@@ -45,88 +45,99 @@ def extract_text_from_pdf(pdf_file):
 
 # Corrected JSON schema to match the detailed interface described in the prompt.
 # This schema is crucial for instructing the Gemini model on the exact output format.
-json_schema = {
-    "type": "object",
-    "properties": {
-        "summary": {
-            "type": "object",
-            "properties": {
-                "totalGoals": {"type": "number"},
-                "totalBMPs": {"type": "number"},
-                "completionRate": {"type": "number"},
-            },
-            "required": ["totalGoals", "totalBMPs", "completionRate"],
-        },
-        "goals": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["title", "description"]
-            },
-        },
-        "bmps": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string"},
-                    "description": {"type": "string"},
-                    "category": {"type": "string"}
-                },
-                "required": ["title", "description", "category"]
-            },
-        },
-        "implementation": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "activity": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["activity", "description"]
-            },
-        },
-        "monitoring": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "metric": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["metric", "description"]
-            },
-        },
-        "outreach": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "activity": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["activity", "description"]
-            },
-        },
-        "geographicAreas": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["name", "description"]
-            },
-        },
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "object",
+      "properties": {
+        "totalGoals": {"type": "number"},
+        "totalBMPs": {"type": "number"},
+        "completionRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": ["totalGoals", "totalBMPs", "completionRate"]
     },
-    "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"],
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "required": ["title", "description"]
+      }
+    },
+    "bmps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "category": {"type": "string"}
+        },
+        "required": ["title", "description", "category"]
+      }
+    },
+    "implementation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "activity": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "required": ["activity", "description"]
+      }
+    },
+    "monitoring": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "metric": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "required": ["metric", "description"]
+      }
+    },
+    "outreach": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "activity": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "required": ["activity", "description"]
+      }
+    },
+    "geographicAreas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "required": ["name", "description"]
+      }
+    }
+  },
+  "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
 }
+
 
 if uploaded_files:
     if st.button("Extract Structured Data from All Files"):
@@ -147,23 +158,39 @@ if uploaded_files:
         
                         # The prompt is refined to align with the new, more detailed JSON schema.
                         prompt = f"""
-                        You are an intelligent data extraction assistant. Extract the following structured report from the text below, strictly following the provided JSON schema.
-        
-                        Text:
+                        You are an intelligent data extraction assistant specialized in agricultural and environmental reports. Analyze the following text extracted from a PDF and extract relevant information according to the ExtractedReport JSON schema described below.
+
+                        Input Text:
                         {pdf_text}
-        
+                        
+                        Schema Description:
+                        You must produce a valid JSON object conforming to this structure:
+                        
+                        summary: Object with totalGoals, totalBMPs, and completionRate (percentage 0–100).
+                        
+                        goals: Array of objects with title and description.
+                        
+                        bmps: Array of objects with title, description, and category.
+                        
+                        implementation: Array of objects with activity and description.
+                        
+                        monitoring: Array of objects with metric and description.
+                        
+                        outreach: Array of objects with activity and description.
+                        
+                        geographicAreas: Array of objects with name and description.
+                        
                         Instructions:
-                        1.  Extract all goals mentioned in the report. For each goal, provide a `title` and a brief `description`.
-                        2.  Extract all Best Management Practices (BMPs). For each, provide a `title`, a brief `description`, and a `category` (e.g., "Soil", "Water Quality", "Vegetation").
-                        3.  Extract and list all implementation activities. For each, provide the `activity` name and a brief `description`.
-                        4.  Extract and list all monitoring metrics. For each, provide the `metric` name and a brief `description` of what is being measured.
-                        5.  Extract and list all outreach activities. For each, provide the `activity` name and a brief `description` of the effort.
-                        6.  Extract all geographic areas mentioned, such as watersheds, counties, or regions. For each, provide the `name` and a brief `description`.
-                        7.  Generate a `summary` object with:
-                            -   `totalGoals`: the number of distinct goals found.
-                            -   `totalBMPs`: the total number of BMPs found.
-                            -   `completionRate`: a percentage estimate based on reported progress.
-                        8.  Output your result as a valid JSON object that strictly follows the provided schema.
+                        
+                        Thoroughly understand the entire text, including hierarchical content like main points, sub-bullets, and examples.
+                        
+                        Extract all relevant information per the schema categories.
+                        
+                        Accurately capture variations in formatting and structure, ensuring no data is missed.
+                        
+                        Provide counts and estimates in the summary object based on the extracted data and any progress indicators.
+                        
+                        Output a single valid JSON object strictly following the described schema, ready for use in dashboards and exports.
         
                         """
         
