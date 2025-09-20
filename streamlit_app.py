@@ -155,43 +155,22 @@ if uploaded_files:
                         st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
         
                         # The prompt is refined to align with the new, more detailed JSON schema.
-                        prompt = f"""
-                        You are a data extraction assistant specialized in agricultural and environmental reports.
-
-                        Input Text:
-                        {pdf_text}
-                        
-                        Extract the following data into JSON following this schema:
-                        
-                        - summary: with totalGoals (number), totalBMPs (number), and completionRate (number between 0-100).
-                        - goals: list of goal objects with title and description.
-                        - bmps: list of BMP objects with title, description, and category.
-                        - implementation: list of implementation activities with activity and description.
-                        - monitoring: list of monitoring activities with activity and description.
-                        - outreach: list of outreach activities with activity and description.
-                        - geographicAreas: list of geographic areas with name and description.
-                        
-                        Category definitions:
-                        - Goals: main targets or objectives.
-                        - BMPs: best management practices recommended or implemented.
-                        - Implementation: actions taken to apply BMPs or achieve goals.
-                        - Monitoring: metrics or checks to track progress.
-                        - Outreach: community engagement and communication activities.
-                        - Geographic Areas: locations relevant to the report.
-                        
-                        Instructions:
-                        1. Extract data strictly according to these categories.
-                        2. Ensure data is placed only in its correct category.
-                        3. Provide all relevant entries, preserving detail.
-                        
-                        After extraction:
-                        
-                        Calculate completionRate as follows:
-                        - Use explicit completion information in the text if available (e.g., "75% complete", "3 of 4 activities finished").
-                        - If no explicit info, estimate completionRate as (number of completed activities) / (total activities across goals, BMPs, implementation, monitoring, and outreach) * 100.
-                        - Provide completionRate as a single numeric value between 0 and 100.
-                        
-                        Output a valid JSON strictly following the schema.
+                        f""" You are an intelligent data extraction assistant specialized in agricultural and environmental reports. Analyze the following text extracted from a PDF and extract relevant information according to the ExtractedReport JSON schema described below. 
+                        Input Text: {pdf_text} 
+                        Schema Description: You must produce a valid JSON object conforming to this structure: 
+                        summary: Object with totalGoals, totalBMPs, and completionRate (percentage 0–100). 
+                        goals: Array of goal activity objects, each with title and description. 
+                        bmps: Array of Best Management Practices(BMP) activity objects, each with title, description, and category. 
+                        implementation: Array of implementation activity objects, each with activity and description. 
+                        monitoring: Array of monitoring activity objects, each with activivty and description. 
+                        outreach: Array of outreach activity objects, each with activity and description. 
+                        geographicAreas: Array of geographic area objects, each with name and description. 
+                        Instructions: 
+                        Thoroughly understand the entire text, including hierarchical content like main points, sub-bullets, and examples. 
+                        Extract all relevant information according to the schema categories above. 
+                        Accurately capture variations in formatting and document structure, ensuring no data is missed. 
+                        Provide counts and estimates in the summary object based on the extracted data and any reported progress indicators. 
+                        Output a single valid JSON object strictly following the described schema, ready for use in dashboards and exports.
 
                         
                         """
