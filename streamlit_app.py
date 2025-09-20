@@ -164,12 +164,12 @@ if uploaded_files:
                         Extract the following data into JSON following this schema:
                         
                         - summary: with totalGoals (number), totalBMPs (number), and completionRate (number between 0-100).
-                        - goals: list of goal objects with title and description.
-                        - bmps: list of BMP objects with title, description, and category.
-                        - implementation: list of implementation activities with activity and description.
-                        - monitoring: list of monitoring activities with activity and description.
-                        - outreach: list of outreach activities with activity and description.
-                        - geographicAreas: list of geographic areas with name and description.
+                        -goals: Array of goal activity objects, each with title and description. 
+                        -bmps: Array of Best Management Practices(BMP) activity objects, each with title, description, and category. 
+                        -implementation: Array of implementation activity objects, each with activity and description. 
+                        -monitoring: Array of monitoring activity objects, each with activity and description. 
+                        -outreach: Array of outreach activity objects, each with activity and description. 
+                        -geographicAreas: Array of geographic area objects, each with name and description.
                         
                         Category definitions:
                         - Goals: main targets or objectives.
