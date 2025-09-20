@@ -185,6 +185,15 @@ if uploaded_files:
                         Extract all relevant information according to the schema categories above.
                         
                         Accurately capture variations in formatting and document structure, ensuring no data is missed.
+                        dentify any explicit progress or completion information in the text, such as percentages, ratios, or statements indicating how much of the project, goals, BMPs, or activities have been completed.
+                        
+                        If explicit completion percentages are provided (e.g., "75% complete," "3 of 4 activities finished"), use those values directly.
+                        
+                        If not explicitly stated, estimate the overall completion rate by comparing the number of completed items to the total planned items across goals, BMPs, implementation activities, monitoring metrics, and outreach activities.
+                        
+                        The completionRate should be a single numeric value between 0 and 100, representing the overall percentage of project completion.
+                        
+                        Provide counts and estimates in the summary object based on the extracted data and any reported progress indicators.
                         
                         Provide counts and estimates in the summary object based on the extracted data and any reported progress indicators.
                         
