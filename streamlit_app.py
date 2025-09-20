@@ -45,7 +45,7 @@ def extract_text_from_pdf(pdf_file):
 
 # Corrected JSON schema to match the detailed interface described in the prompt.
 # This schema is crucial for instructing the Gemini model on the exact output format.
-{
+json_schema = {
   "type": "object",
   "properties": {
     "summary": {
