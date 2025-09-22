@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 import pandas as pd
-import firebase_database  # Your backend logic
+import firebase_database  # Your backend module
 
 st.set_page_config(page_title="📄 PDF to ExtractedReport JSON", layout="wide")
 st.title("📄 PDF to ExtractedReport JSON using Gemini")
@@ -30,7 +30,6 @@ if uploaded_files:
     if st.button("Extract & Upload to Firestore"):
         for uploaded_file in uploaded_files:
             st.markdown(f"---\n### Processing `{uploaded_file.name}`")
-
             try:
                 pdf_text = firebase_database.extract_text_from_pdf(uploaded_file)
                 if not pdf_text.strip():
@@ -42,13 +41,13 @@ if uploaded_files:
                 )
                 summary = structured_data.get("summary", {})
 
-                # Display summary
+                # Display summary metrics
                 col1, col2, col3 = st.columns(3)
                 col1.metric("Total Goals", summary.get("totalGoals", 0))
                 col2.metric("Total BMPs", summary.get("totalBMPs", 0))
                 col3.metric("Completion Rate", f"{summary.get('completionRate', 0)}%")
 
-                # Display tables
+                # Display extracted tables
                 display_section_df("Goals", structured_data.get("goals", []), ["id", "title", "description"])
                 display_section_df("BMPs", structured_data.get("bmps", []), ["id", "title", "description", "category"])
                 display_section_df("Implementation Activities", structured_data.get("implementation", []), ["id", "activity", "description"])
@@ -56,7 +55,7 @@ if uploaded_files:
                 display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
                 display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
-                # Upload to Firestore (overwrites previous)
+                # Upload to Firestore
                 firebase_database.upload_data_normalized(uploaded_file.name, summary, structured_data)
                 st.success(f"✅ Uploaded `{uploaded_file.name}` to Firestore!")
 
