@@ -1,17 +1,17 @@
 import streamlit as st
 from google.oauth2.service_account import Credentials
+Import streamlit as st
+import pdfplumber
+import json
+import google.generativeai as genai
+import pandas as pd
 
+# ------------------------
+# Gemini API setup
+# ------------------------
 try:
-    # Convert Streamlit secrets into a credentials dict
-    service_account_info = dict(st.secrets["gspread"])
+    genai.configure(api_key=st.secrets["gspread"])
+except KeyError:
+    st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
+    st.stop()
 
-    # Load credentials from dict
-    credentials = Credentials.from_service_account_info(
-        service_account_info,
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-
-    st.success("✅ Service account credentials loaded successfully!")
-
-except Exception as e:
-    st.error(f"❌ Failed to load credentials: {e}")
