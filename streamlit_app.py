@@ -7,41 +7,33 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
 import uuid
-from typing import List, Dict, Any, Optional
 
-# Optional: install jsonschema for JSON validation (pip install jsonschema)
-try:
-    import jsonschema
-    from jsonschema import validate, ValidationError
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
-
-# -------- Firestore Initialization with caching --------
-@st.cache_resource
-def init_firestore():
-    if not firebase_admin._apps:
-        cred = credentials.Certificate(dict(st.secrets["firebase"]))
-        firebase_admin.initialize_app(cred)
-    return firestore.client()
-
-db = init_firestore()
+# -------- Firestore Initialization --------
+if not firebase_admin._apps:
+    cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 # -------- Gemini API Setup --------
-def configure_genai():
-    try:
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        return genai.GenerativeModel("gemini-1.5-flash-latest")
-    except KeyError:
-        st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
-        st.stop()
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+except KeyError:
+    st.error("API key not found. Please add `GOOGLE_API_KEY` to your Streamlit secrets.")
+    st.stop()
 
-model = configure_genai()
+model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
+# -------- Streamlit UI Setup --------
+st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
+st.title("📄 PDF to ExtractedReport JSON using Gemini")
+st.markdown("Upload one or more PDF files, and the app will extract structured data according to the `ExtractedReport` interface and upload to Firestore.")
+
+uploaded_files = st.file_uploader(
+    "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
+)
 
 # -------- JSON Schema --------
 json_schema = {
-    # ... your full schema as you provided ...
     "type": "object",
     "properties": {
         "summary": {
@@ -132,10 +124,8 @@ json_schema = {
     "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
 }
 
-
 # -------- Helper Functions --------
-def extract_text_from_pdf(pdf_file) -> str:
-    """Extract all text from the PDF file."""
+def extract_text_from_pdf(pdf_file):
     text_output = ""
     try:
         with pdfplumber.open(pdf_file) as pdf:
@@ -145,10 +135,9 @@ def extract_text_from_pdf(pdf_file) -> str:
                     text_output += page_text + "\n"
     except Exception as e:
         st.error(f"Failed to read PDF: {e}")
-    return text_output.strip()
+    return text_output
 
-def display_section_df(name: str, data: List[Dict[str, Any]], columns: Optional[List[str]] = None):
-    """Display a section of data as a Streamlit dataframe."""
+def display_section_df(name, data, columns):
     st.markdown(f"### {name}")
     if data:
         df = pd.DataFrame(data)
@@ -157,190 +146,154 @@ def display_section_df(name: str, data: List[Dict[str, Any]], columns: Optional[
             df = df[available_cols]
         st.dataframe(df)
     else:
-        st.info("No data available.")
+        st.write("No data available.")
 
-def validate_json_schema(data: Dict[str, Any], schema: Dict[str, Any]) -> bool:
-    """Validate data against JSON schema if jsonschema lib is installed."""
-    if not HAS_JSONSCHEMA:
-        return True  # skip validation if no lib available
-    try:
-        validate(instance=data, schema=schema)
-        return True
-    except ValidationError as ve:
-        st.error(f"JSON schema validation error: {ve.message}")
-        return False
+def upload_data_normalized(file_name, summary, structured_data):
+    # Save summary in a separate collection (one doc per file)
+    db.collection("summaries").document(file_name).set({
+        "sourceFileName": file_name,
+        "createdAt": datetime.utcnow(),
+        **summary
+    })
 
-def save_section_to_firestore(
-    base_doc_ref,
-    section_name: str,
-    items: List[Dict[str, Any]],
-):
-    """
-    Save a list of items to Firestore subcollection under base_doc_ref.
-    Uses batch writes for efficiency.
-    """
-    if not items:
-        return
-    batch = db.batch()
-    subcol_ref = base_doc_ref.collection(section_name)
-    for item in items:
-        doc_id = item.get("id") or str(uuid.uuid4())
-        item["id"] = doc_id
-        item["createdAt"] = datetime.utcnow()
-        doc_ref = subcol_ref.document(doc_id)
-        batch.set(doc_ref, item)
-    batch.commit()
+    sections = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+    for section in sections:
+        coll_ref = db.collection(section)
+        batch = db.batch()
+        for item in structured_data.get(section, []):
+            doc_id = item.get("id") or str(uuid.uuid4())
+            doc_ref = coll_ref.document(doc_id)
+            batch.set(doc_ref, {
+                **item,
+                "sourceFileName": file_name,
+                "createdAt": datetime.utcnow()
+            })
+        batch.commit()
 
-def process_and_upload_pdf(uploaded_file):
-    """Process a single PDF file: extract, generate JSON, display, save to Firestore."""
-    st.markdown(f"## Processing `{uploaded_file.name}`")
-
-    pdf_text = extract_text_from_pdf(uploaded_file)
-    if not pdf_text:
-        st.warning("No text could be extracted from the uploaded PDF.")
-        return
-
-    prompt = f"""
-    You are a data extraction assistant specialized in agricultural and environmental reports.
-    
-    Your task is to extract structured data from the input report text and return it as a valid JSON object that strictly follows the defined schema.
-    
-    ---
-    
-    ### 📄 Input Text:
-    {pdf_text}
-    
-    ---
-    
-    ### 🧩 JSON Structure (Schema):
-    
-    Extract the following sections into JSON. Each field is required — include an empty array if no data is found.
-    
-    - **summary**:
-    - `totalGoals`: Total number of goal activities.
-    - `totalBMPs`: Total number of BMP activities.
-    - `completionRate`: A number between 0–100 representing estimated completion (see calculation rules below).
-    
-    - **goals**: Array of goal objects.
-    - Each must include:
-    - `title`: Short name of the goal.
-    - `description`: Explanation of the goal’s purpose or intent.
-    
-    - **bmps**: Array of BMP (Best Management Practice) objects.
-    - Each must include:
-    - `title`: Name of the BMP.
-    - `description`: Description of what it involves.
-    - `category`: Type/classification of the BMP.
-    
-    - **implementation**: On-the-ground activities that were performed or executed.
-    - Each item must include:
-    - `activity`: Short name of the implementation step.
-    - `description`: Detailed explanation of what was implemented.
-    
-    **monitoring**: Activities that track or assess progress by measuring specific indicators.
-    - Each item must include:
-    - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
-    - `value`: The measured value or status of the metric (can be numeric or descriptive).
-    - `units`: Units of the metric if applicable (e.g., "mg/L", "%", "count").
-    - `description`: Explanation of what the metric represents and how it was obtained.
-    
-    - **outreach**: Community engagement or communication activities.
-    - Each must include:
-    - `activity`: Name of the outreach effort.
-    - `description`: Who was engaged and what was shared.
-    
-    - **geographicAreas**: Locations relevant to the report.
-    - Each must include:
-    - `name`: Name of the area.
-    - `description`: Details about its relevance.
-    
-    ---
-    
-    For the `completionRate`, carefully analyze the entire input text for mentions of completed goal activities, BMP implementations, milestones, or progress statements.
-    
-    - Estimate the overall completion as a numeric percentage (0–100) reflecting the progress toward fulfilling all stated goals and BMPs.
-    - Consider both explicit quantitative data (e.g., "70% complete") and qualitative descriptions indicating progress (e.g., "most activities have been finished", "implementation ongoing").
-    - Use your best judgment to infer the level of completion even if exact figures are not provided.
-    - Return **only** a single numeric value between 0 and 100, rounded to the nearest integer. No text, ranges, or explanations.
-    - If no progress information is found, default to 0.
-    
-    ⚠️ Do **not** calculate the completion rate by a fixed formula or ratio of counts but use your LLM reasoning to estimate overall progress based on the report content.
-    
-    ---
-    
-    ### ✅ Output Instructions
-    
-    - Output **only** a valid JSON object.
-    - All required fields must be included.
-    - If no entries exist in a category, use an empty array.
-    - Follow the schema strictly.
-    
-    Begin extraction now.
-    """
-
-
-    try:
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "response_mime_type": "application/json",
-                "response_schema": json_schema,
-            },
-        )
-        structured_data = json.loads(response.text)
-
-        # Optional JSON Schema Validation
-        if not validate_json_schema(structured_data, json_schema):
-            st.error("Extracted JSON failed schema validation. Please review the input or retry.")
-            return
-
-        # Display summary as metrics
-        summary = structured_data.get("summary", {})
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Goals", summary.get("totalGoals", 0))
-        col2.metric("Total BMPs", summary.get("totalBMPs", 0))
-        col3.metric("Completion Rate", f"{summary.get('completionRate', 0)}%")
-
-        # Display each section as DataFrame
-        display_section_df("Goals", structured_data.get("goals", []), ["id", "title", "description"])
-        display_section_df("BMPs", structured_data.get("bmps", []), ["id", "title", "description", "category"])
-        display_section_df("Implementation Activities", structured_data.get("implementation", []), ["id", "activity", "description"])
-        display_section_df("Monitoring Activities", structured_data.get("monitoring", []), ["id", "metricName", "value", "units", "description"])
-        display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
-        display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
-
-        # Upload to Firestore
-        collection_name = "extracted_reports"
-        base_doc_ref = db.collection(collection_name).document(uploaded_file.name)
-
-        base_doc_ref.set({
-            "sourceFileName": uploaded_file.name,
-            "createdAt": datetime.utcnow(),
-            "summary": summary
-        })
-
-        section_keys = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
-        for section in section_keys:
-            save_section_to_firestore(base_doc_ref, section, structured_data.get(section, []))
-
-        st.success(f"✅ Data from `{uploaded_file.name}` uploaded successfully to Firestore.")
-
-    except json.JSONDecodeError:
-        st.error("❌ The response could not be parsed as JSON. Gemini may have returned an invalid format.")
-    except Exception as e:
-        st.error(f"⚠️ An error occurred: {e}")
-
-# -------- Streamlit UI --------
-st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
-st.title("📄 PDF to ExtractedReport JSON using Gemini")
-st.markdown("Upload one or more PDF files, and the app will extract structured data according to the `ExtractedReport` interface and upload to Firestore.")
-
-uploaded_files = st.file_uploader(
-    "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
-)
-
+# -------- Main Processing --------
 if uploaded_files:
     if st.button("Extract Structured Data from All Files and Upload to Firestore"):
-        with st.spinner("Processing PDFs and uploading to Firestore..."):
+        with st.spinner("Processing with Gemini and uploading to Firestore..."):
             for uploaded_file in uploaded_files:
-                process_and_upload_pdf(uploaded_file)
+                st.markdown(f"### Processing `{uploaded_file.name}`")
+                st.markdown(f"**Source File:** `{uploaded_file.name}`")
+
+                pdf_text = extract_text_from_pdf(uploaded_file)
+
+                if not pdf_text.strip():
+                    st.warning("No text could be extracted from the uploaded PDF.")
+                    continue
+
+                prompt = f"""
+                You are a data extraction assistant specialized in agricultural and environmental reports.
+
+                Your task is to extract structured data from the input report text and return it as a valid JSON object that strictly follows the defined schema.
+
+                ---
+
+                ### 📄 Input Text:
+                {pdf_text}
+
+                ---
+
+                ### 🧩 JSON Structure (Schema):
+
+                Extract the following sections into JSON. Each field is required — include an empty array if no data is found.
+
+                - **summary**:
+                  - `totalGoals`: Total number of goal activities.
+                  - `totalBMPs`: Total number of BMP activities.
+                  - `completionRate`: A number between 0–100 representing estimated completion (see calculation rules below).
+
+                - **goals**: Array of goal objects.
+                  - Each must include:
+                    - `title`: Short name of the goal.
+                    - `description`: Explanation of the goal’s purpose or intent.
+
+                - **bmps**: Array of BMP (Best Management Practice) objects.
+                  - Each must include:
+                    - `title`: Name of the BMP.
+                    - `description`: Description of what it involves.
+                    - `category`: Type/classification of the BMP.
+
+                - **implementation**: On-the-ground activities that were performed or executed.
+                  - Each item must include:
+                    - `activity`: Short name of the implementation step.
+                    - `description`: Detailed explanation of what was implemented.
+
+                **monitoring**: Activities that track or assess progress by measuring specific indicators.
+                - Each item must include:
+                  - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
+                  - `value`: The measured value or status of the metric (can be numeric or descriptive).
+                  - `units`: Units of the metric if applicable (e.g., "mg/L", "%", "count").
+                  - `description`: Explanation of what the metric represents and how it was obtained.
+
+                - **outreach**: Community engagement or communication activities.
+                  - Each must include:
+                    - `activity`: Name of the outreach effort.
+                    - `description`: Who was engaged and what was shared.
+
+                - **geographicAreas**: Locations relevant to the report.
+                  - Each must include:
+                    - `name`: Name of the area.
+                    - `description`: Details about its relevance.
+
+                ---
+
+                For the `completionRate`, carefully analyze the entire input text for mentions of completed goal activities, BMP implementations, milestones, or progress statements.
+
+                - Estimate the overall completion as a numeric percentage (0–100) reflecting the progress toward fulfilling all stated goals and BMPs.
+                - Consider both explicit quantitative data (e.g., "70% complete") and qualitative descriptions indicating progress (e.g., "most activities have been finished", "implementation ongoing").
+                - Use your best judgment to infer the level of completion even if exact figures are not provided.
+                - Return **only** a single numeric value between 0 and 100, rounded to the nearest integer. No text, ranges, or explanations.
+                - If no progress information is found, default to 0.
+
+                ⚠️ Do **not** calculate the completion rate by a fixed formula or ratio of counts but use your LLM reasoning to estimate overall progress based on the report content.
+
+                ---
+
+                ### ✅ Output Instructions
+
+                - Output **only** a valid JSON object.
+                - All required fields must be included.
+                - If no entries exist in a category, use an empty array.
+                - Follow the schema strictly.
+
+                Begin extraction now.
+                """
+
+                try:
+                    response = model.generate_content(
+                        prompt,
+                        generation_config={
+                            "response_mime_type": "application/json",
+                            "response_schema": json_schema,
+                        },
+                    )
+                    structured_data = json.loads(response.text)
+
+                    # Show summary as metrics
+                    if structured_data.get("summary"):
+                        summary = structured_data["summary"]
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Total Goals", summary.get("totalGoals", 0))
+                        col2.metric("Total BMPs", summary.get("totalBMPs", 0))
+                        col3.metric("Completion Rate", f"{summary.get('completionRate', 0)}%")
+
+                    # Display each section as a DataFrame
+                    display_section_df("Goals", structured_data.get("goals", []), ["id", "title", "description"])
+                    display_section_df("BMPs", structured_data.get("bmps", []), ["id", "title", "description", "category"])
+                    display_section_df("Implementation Activities", structured_data.get("implementation", []), ["id", "activity", "description"])
+                    display_section_df("Monitoring Activities", structured_data.get("monitoring", []), ["id", "metricName", "value", "units", "description"])
+                    display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
+                    display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
+
+                    # Upload data normalized to Firestore
+                    upload_data_normalized(uploaded_file.name, structured_data.get("summary", {}), structured_data)
+
+                    st.success(f"✅ Data from `{uploaded_file.name}` uploaded successfully to Firestore.")
+
+                except json.JSONDecodeError:
+                    st.error("❌ The response could not be parsed as JSON. Gemini may have returned an invalid format.")
+                except Exception as e:
+                    st.error(f"⚠️ An error occurred: {e}")
