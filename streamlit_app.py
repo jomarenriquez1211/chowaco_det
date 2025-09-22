@@ -157,9 +157,6 @@ if uploaded_files:
                     if not pdf_text.strip():
                         st.warning("No text could be extracted from the uploaded PDF.")
                     else:
-                        st.text_area("Raw Extracted Text", pdf_text, height=300)
-
-                        st.subheader("Step 2️⃣ - Generate ExtractedReport JSON")
 
                         prompt = f"""
                         You are a data extraction assistant specialized in agricultural and environmental reports.
@@ -261,7 +258,7 @@ if uploaded_files:
                             display_section_df("Goals", structured_data.get("goals", []), ["id", "title", "description"])
                             display_section_df("BMPs", structured_data.get("bmps", []), ["id", "title", "description", "category"])
                             display_section_df("Implementation Activities", structured_data.get("implementation", []), ["id", "activity", "description"])
-                            display_section_df("Monitoring Activities", structured_data.get("monitoring", []), ["id", "activity", "description"])
+                            display_section_df("Monitoring Activities", structured_data.get("monitoring", []), ["id", "metricName", "value", "units", "description"])
                             display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
                             display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
@@ -275,7 +272,8 @@ if uploaded_files:
                                 "Geographic Areas": len(structured_data.get("geographicAreas", [])),
                             }
                             df_counts = pd.DataFrame(data_counts.items(), columns=["Category", "Count"])
-                            )
+                            st.bar_chart(df_counts.set_index("Category"))
+
                         except json.JSONDecodeError:
                             st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
                         except Exception as e:
