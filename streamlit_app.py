@@ -164,6 +164,14 @@ def delete_existing_docs(collection_name, file_name):
     batch.commit()
 
 def upload_data_normalized(file_name, summary, structured_data):
+    # Delete existing summary doc for this file (just one doc named by file_name)
+    db.collection("summaries").document(file_name).delete()
+
+    # Delete existing docs for this file from all collections before writing fresh
+    sections = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+    for section in sections:
+        delete_existing_docs(section, file_name)
+
     # Save summary in a separate collection (one doc per file)
     db.collection("summaries").document(file_name).set({
         "sourceFileName": file_name,
@@ -171,7 +179,7 @@ def upload_data_normalized(file_name, summary, structured_data):
         **summary
     })
 
-    sections = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+    # Upload fresh data
     for section in sections:
         coll_ref = db.collection(section)
         batch = db.batch()
@@ -184,7 +192,6 @@ def upload_data_normalized(file_name, summary, structured_data):
                 "createdAt": datetime.utcnow()
             })
         batch.commit()
-
 # -------- Main Processing --------
 if uploaded_files:
     if st.button("Extract Structured Data from All Files and Upload to Firestore"):
