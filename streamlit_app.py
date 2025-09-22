@@ -34,7 +34,6 @@ uploaded_files = st.file_uploader(
 
 # -------- JSON Schema --------
 json_schema = {
-    # ... your full schema as you provided ...
     "type": "object",
     "properties": {
         "summary": {
@@ -266,10 +265,19 @@ Begin extraction now.
                     display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
                     display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
-                    # Upload to Firestore
+                    # Upload to Firestore: store tabular data as arrays inside one document
                     collection_name = "extracted_reports"
                     doc_ref = db.collection(collection_name).document(uploaded_file.name)
-                    doc_ref.set(structured_data)
+                    doc_ref.set({
+                        "summary": structured_data.get("summary", {}),
+                        "goals": structured_data.get("goals", []),
+                        "bmps": structured_data.get("bmps", []),
+                        "implementation": structured_data.get("implementation", []),
+                        "monitoring": structured_data.get("monitoring", []),
+                        "outreach": structured_data.get("outreach", []),
+                        "geographicAreas": structured_data.get("geographicAreas", [])
+                    })
+
                     st.success(f"Data from `{uploaded_file.name}` uploaded successfully to Firestore.")
 
                 except json.JSONDecodeError:
