@@ -95,10 +95,12 @@ json_schema = {
         "type": "object",
         "properties": {
           "id": {"type": "string"},
-          "activity": {"type": "string"},
+          "metricName": {"type": "string"},
+          "value": {},
+          "units": {"type": "string"},
           "description": {"type": "string"}
         },
-        "required": ["activity", "description"]
+        "required": ["metricName", "value", "description"]
       }
     },
     "outreach": {
@@ -129,18 +131,6 @@ json_schema = {
   "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
 }
 
-def display_section_df(name, data, columns):
-    """Helper: Show a DataFrame for a given section if data exists."""
-    st.markdown(f"### {name}")
-    if data:
-        df = pd.DataFrame(data)
-        if columns:
-            # Only show columns that exist in data
-            available_cols = [col for col in columns if col in df.columns]
-            df = df[available_cols]
-        st.dataframe(df)
-    else:
-        st.write("No data available.")
 
 if uploaded_files:
     if st.button("Extract Structured Data from All Files"):
@@ -196,10 +186,12 @@ if uploaded_files:
                             - `activity`: Short name of the implementation step.
                             - `description`: Detailed explanation of what was implemented.
 
-                        - **monitoring**: Activities that track or assess progress.
-                          - Each must include:
-                            - `activity`: Name of the monitoring action.
-                            - `description`: What was monitored and how.
+                        **monitoring**: Activities that track or assess progress by measuring specific indicators.
+                      - Each item must include:
+                        - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
+                        - `value`: The measured value or status of the metric (can be numeric or descriptive).
+                        - `units`: Units of the metric if applicable (e.g., "mg/L", "%", "count").
+                        - `description`: Explanation of what the metric represents and how it was obtained.
 
                         - **outreach**: Community engagement or communication activities.
                           - Each must include:
