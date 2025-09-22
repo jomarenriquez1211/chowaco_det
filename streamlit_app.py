@@ -154,6 +154,7 @@ if uploaded_files:
         with st.spinner("Processing with Gemini and uploading to Firestore..."):
             for uploaded_file in uploaded_files:
                 st.markdown(f"### Processing `{uploaded_file.name}`")
+                st.markdown(f"**Source File:** `{uploaded_file.name}`")
 
                 pdf_text = extract_text_from_pdf(uploaded_file)
 
@@ -265,19 +266,14 @@ Begin extraction now.
                     display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
                     display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
-                    # Upload to Firestore: store tabular data as arrays inside one document
+                    # Upload to Firestore with sourceFileName included
                     collection_name = "extracted_reports"
                     doc_ref = db.collection(collection_name).document(uploaded_file.name)
-                    doc_ref.set({
+                    upload_data = {
                         "sourceFileName": uploaded_file.name,
-                        "summary": structured_data.get("summary", {}),
-                        "goals": structured_data.get("goals", []),
-                        "bmps": structured_data.get("bmps", []),
-                        "implementation": structured_data.get("implementation", []),
-                        "monitoring": structured_data.get("monitoring", []),
-                        "outreach": structured_data.get("outreach", []),
-                        "geographicAreas": structured_data.get("geographicAreas", [])
-                    })
+                        **structured_data
+                    }
+                    doc_ref.set(upload_data)
 
                     st.success(f"Data from `{uploaded_file.name}` uploaded successfully to Firestore.")
 
