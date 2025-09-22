@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 import pandas as pd
 import firebase_database  # assumes backend.py is in same folder
 
