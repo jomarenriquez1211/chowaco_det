@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import pandas as pd
+from pathlib import Path
 import firebase_database  # assumes backend.py is in same folder
 
 st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
@@ -13,176 +14,16 @@ uploaded_files = st.file_uploader(
     "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
 )
 
-# Paste your full JSON schema here:
-json_schema = {
-    "type": "object",
-    "properties": {
-        "summary": {
-            "type": "object",
-            "properties": {
-                "totalGoals": {"type": "number"},
-                "totalBMPs": {"type": "number"},
-                "completionRate": {"type": "number"}
-            },
-            "required": ["totalGoals", "totalBMPs", "completionRate"]
-        },
-        "goals": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "title": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["title", "description"]
-            }
-        },
-        "bmps": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "title": {"type": "string"},
-                    "description": {"type": "string"},
-                    "category": {"type": "string"}
-                },
-                "required": ["title", "description", "category"]
-            }
-        },
-        "implementation": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "activity": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["activity", "description"]
-            }
-        },
-        "monitoring": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "metricName": {"type": "string"},
-                    "value": {},
-                    "units": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["metricName", "value", "description"]
-            }
-        },
-        "outreach": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "activity": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["activity", "description"]
-            }
-        },
-        "geographicAreas": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "name": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["name", "description"]
-            }
-        }
-    },
-    "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
-}
 
-# Prompt template (same as before, just insert {pdf_text})
-prompt_template = """
-You are a data extraction assistant specialized in agricultural and environmental reports.
+def get_json_schema():
+    schema_path = Path(__file__).parent / "schema.json"
+    with open(schema_path, "r") as f:
+        return json.load(f)
 
-Your task is to extract structured data from the input report text and return it as a valid JSON object that strictly follows the defined schema.
-
----
-
-### 📄 Input Text:
-{pdf_text}
-
----
-
-### 🧩 JSON Structure (Schema):
-
-Extract the following sections into JSON. Each field is required — include an empty array if no data is found.
-
-- **summary**:
-  - `totalGoals`: Total number of goal activities.
-  - `totalBMPs`: Total number of BMP activities.
-  - `completionRate`: A number between 0–100 representing estimated completion (see calculation rules below).
-
-- **goals**: Array of goal objects.
-  - Each must include:
-    - `title`: Short name of the goal.
-    - `description`: Explanation of the goal’s purpose or intent.
-
-- **bmps**: Array of BMP (Best Management Practice) objects.
-  - Each must include:
-    - `title`: Name of the BMP.
-    - `description`: Description of what it involves.
-    - `category`: Type/classification of the BMP.
-
-- **implementation**: On-the-ground activities that were performed or executed.
-  - Each item must include:
-    - `activity`: Short name of the implementation step.
-    - `description`: Detailed explanation of what was implemented.
-
-**monitoring**: Activities that track or assess progress by measuring specific indicators.
-- Each item must include:
-  - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
-  - `value`: The measured value or status of the metric (can be numeric or descriptive).
-  - `units`: Units of the metric if applicable (e.g., "mg/L", "%", "count").
-  - `description`: Explanation of what the metric represents and how it was obtained.
-
-- **outreach**: Community engagement or communication activities.
-  - Each must include:
-    - `activity`: Name of the outreach effort.
-    - `description`: Who was engaged and what was shared.
-
-- **geographicAreas**: Locations relevant to the report.
-  - Each must include:
-    - `name`: Name of the area.
-    - `description`: Details about its relevance.
-
----
-
-For the `completionRate`, carefully analyze the entire input text for mentions of completed goal activities, BMP implementations, milestones, or progress statements.
-
-- Estimate the overall completion as a numeric percentage (0–100) reflecting the progress toward fulfilling all stated goals and BMPs.
-- Consider both explicit quantitative data (e.g., "70% complete") and qualitative descriptions indicating progress (e.g., "most activities have been finished", "implementation ongoing").
-- Use your best judgment to infer the level of completion even if exact figures are not provided.
-- Return **only** a single numeric value between 0 and 100, rounded to the nearest integer. No text, ranges, or explanations.
-- If no progress information is found, default to 0.
-
-⚠️ Do **not** calculate the completion rate by a fixed formula or ratio of counts but use your LLM reasoning to estimate overall progress based on the report content.
-
----
-
-### ✅ Output Instructions
-
-- Output **only** a valid JSON object.
-- All required fields must be included.
-- If no entries exist in a category, use an empty array.
-- Follow the schema strictly.
-
-Begin extraction now.
-"""
+def get_prompt_template():
+    prompt_path = Path(__file__).parent / "prompt.txt"
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 def display_section_df(name, data, columns):
     st.markdown(f"### {name}")
