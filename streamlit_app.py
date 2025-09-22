@@ -131,7 +131,19 @@ json_schema = {
   "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
 }
 
-
+def display_section_df(name, data, columns):
+    """Helper: Show a DataFrame for a given section if data exists."""
+    st.markdown(f"### {name}")
+    if data:
+        df = pd.DataFrame(data)
+        if columns:
+            # Only show columns that exist in data
+            available_cols = [col for col in columns if col in df.columns]
+            df = df[available_cols]
+        st.dataframe(df)
+    else:
+        st.write("No data available.")
+        
 if uploaded_files:
     if st.button("Extract Structured Data from All Files"):
         with st.spinner("Processing with Gemini..."):
@@ -236,12 +248,7 @@ if uploaded_files:
                                 },
                             )
                             structured_data = json.loads(response.text)
-
-                            st.subheader("ExtractedReport JSON")
-                            st.json(structured_data)
-
-                            st.subheader("Step 3️⃣ - Extracted Data Tables")
-
+                            
                             # Show summary as metrics
                             if structured_data.get("summary"):
                                 summary = structured_data["summary"]
@@ -268,14 +275,6 @@ if uploaded_files:
                                 "Geographic Areas": len(structured_data.get("geographicAreas", [])),
                             }
                             df_counts = pd.DataFrame(data_counts.items(), columns=["Category", "Count"])
-                            st.bar_chart(df_counts.set_index("Category"))
-
-                            # Download JSON button
-                            st.download_button(
-                                "📥 Download JSON",
-                                data=json.dumps(structured_data, indent=2),
-                                file_name=f"{uploaded_file.name.replace('.pdf','')}_ExtractedReport.json",
-                                mime="application/json",
                             )
                         except json.JSONDecodeError:
                             st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
