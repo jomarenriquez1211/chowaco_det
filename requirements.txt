@@ -3,6 +3,7 @@ pdfplumber
 pandas
 google-generativeai
 firebase-admin
-pytesseract
-tesseract
+pdf2image 
+pytesseract 
+pillow
 PyPDF2
