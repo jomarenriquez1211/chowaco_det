@@ -3,3 +3,4 @@ pdfplumber
 pandas
 google-generativeai
 firebase-admin
+pytesseract
