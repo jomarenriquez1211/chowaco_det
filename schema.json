@@ -1,91 +1,98 @@
-# Paste your full JSON schema here:
-json_schema = {
-    "type": "object",
-    "properties": {
-        "summary": {
-            "type": "object",
-            "properties": {
-                "totalGoals": {"type": "number"},
-                "totalBMPs": {"type": "number"},
-                "completionRate": {"type": "number"}
-            },
-            "required": ["totalGoals", "totalBMPs", "completionRate"]
-        },
-        "goals": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "title": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["title", "description"]
-            }
-        },
-        "bmps": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "title": {"type": "string"},
-                    "description": {"type": "string"},
-                    "category": {"type": "string"}
-                },
-                "required": ["title", "description", "category"]
-            }
-        },
-        "implementation": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "activity": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["activity", "description"]
-            }
-        },
-        "monitoring": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "metricName": {"type": "string"},
-                    "value": {},
-                    "units": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["metricName", "value", "description"]
-            }
-        },
-        "outreach": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "activity": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["activity", "description"]
-            }
-        },
-        "geographicAreas": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "name": {"type": "string"},
-                    "description": {"type": "string"}
-                },
-                "required": ["name", "description"]
-            }
-        }
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "object",
+      "properties": {
+        "totalGoals": { "type": "number" },
+        "totalBMPs": { "type": "number" },
+        "completionRate": { "type": "number" }
+      },
+      "required": ["totalGoals", "totalBMPs", "completionRate"]
     },
-    "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["title", "description"]
+      }
+    },
+    "bmps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "category": { "type": "string" }
+        },
+        "required": ["title", "description", "category"]
+      }
+    },
+    "implementation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "activity": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["activity", "description"]
+      }
+    },
+    "monitoring": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "metricName": { "type": "string" },
+          "value": {},
+          "units": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["metricName", "value", "description"]
+      }
+    },
+    "outreach": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "activity": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["activity", "description"]
+      }
+    },
+    "geographicAreas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["name", "description"]
+      }
+    }
+  },
+  "required": [
+    "summary",
+    "goals",
+    "bmps",
+    "implementation",
+    "monitoring",
+    "outreach",
+    "geographicAreas"
+  ]
 }
