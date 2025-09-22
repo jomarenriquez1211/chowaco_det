@@ -200,12 +200,12 @@ if uploaded_files:
             st.markdown(f"**Source File:** `{uploaded_file.name}`")
 
             try:
-                pdf_text = backend.extract_text_from_pdf(uploaded_file)
+                pdf_text = firebase_database.extract_text_from_pdf(uploaded_file)
                 if not pdf_text.strip():
                     st.warning("No text could be extracted from the uploaded PDF.")
                     continue
 
-                structured_data = backend.generate_structured_data(pdf_text, json_schema, prompt_template)
+                structured_data = firebase_database.generate_structured_data(pdf_text, json_schema, prompt_template)
                 summary = structured_data.get("summary", {})
 
                 # Show summary as metrics
@@ -223,7 +223,7 @@ if uploaded_files:
                 display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
                 # Upload fresh data to Firestore with overwrite
-                backend.upload_data_normalized(uploaded_file.name, summary, structured_data)
+                firebase_database.upload_data_normalized(uploaded_file.name, summary, structured_data)
 
                 st.success(f"✅ Data from `{uploaded_file.name}` uploaded successfully to Firestore.")
 
