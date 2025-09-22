@@ -148,6 +148,21 @@ def display_section_df(name, data, columns):
     else:
         st.write("No data available.")
 
+def delete_existing_docs(collection_name, file_name):
+    coll_ref = db.collection(collection_name)
+    # Query docs with sourceFileName == file_name
+    docs = coll_ref.where("sourceFileName", "==", file_name).stream()
+    batch = db.batch()
+    count = 0
+    for doc in docs:
+        batch.delete(doc.reference)
+        count += 1
+        # Commit batch every 500 deletes (Firestore batch limit)
+        if count % 500 == 0:
+            batch.commit()
+            batch = db.batch()
+    batch.commit()
+
 def upload_data_normalized(file_name, summary, structured_data):
     # Save summary in a separate collection (one doc per file)
     db.collection("summaries").document(file_name).set({
