@@ -5,6 +5,7 @@ import firebase_database  # assumes backend.py is in same folder
 
 st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
 st.title("📄 PDF to ExtractedReport JSON using Gemini")
+st.write(f"Max upload size (MB): {st.runtime.server.max_upload_size_mb}")
 st.markdown("Upload one or more PDF files, and the app will extract structured data according to the `ExtractedReport` interface and upload to Firestore.")
 
 uploaded_files = st.file_uploader(
