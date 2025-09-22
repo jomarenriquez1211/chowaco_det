@@ -269,6 +269,7 @@ Begin extraction now.
                     collection_name = "extracted_reports"
                     doc_ref = db.collection(collection_name).document(uploaded_file.name)
                     doc_ref.set({
+                        "sourceFileName": uploaded_file.name,
                         "summary": structured_data.get("summary", {}),
                         "goals": structured_data.get("goals", []),
                         "bmps": structured_data.get("bmps", []),
