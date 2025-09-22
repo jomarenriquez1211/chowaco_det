@@ -4,4 +4,5 @@ pandas
 google-generativeai
 firebase-admin
 pytesseract
+tesseract
 PyPDF2
