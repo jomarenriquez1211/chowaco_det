@@ -7,6 +7,12 @@ import google.generativeai as genai
 from firebase_admin import credentials, firestore
 from datetime import datetime
 from pathlib import Path
+import streamlit as st
+import pdfplumber
+import pandas as pd
+
+
+
 
 import pdfplumber
 from PIL import Image
