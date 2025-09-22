@@ -1,18 +1,21 @@
-import os
 import json
-
-# If using GitHub secrets or Streamlit secrets:
-service_account_info = st.secrets["GCP_SA_CREDENTIALS"]  # This is the JSON string
-
-# Write to a temp file
-service_account_path = "temp_service_account.json"
-with open(service_account_path, "w") as f:
-    f.write(service_account_info)
-
-# Use this path for Google credentials
+import streamlit as st
 from google.oauth2.service_account import Credentials
 
-credentials = Credentials.from_service_account_file(
-    service_account_path,
-    scopes=['https://www.googleapis.com/auth/spreadsheets']
-)
+try:
+    # Load JSON string from Streamlit secrets
+    json_str = st.secrets["gspread"]["service_account_json"]
+
+    # Parse JSON string to dictionary
+    service_account_info = json.loads(json_str)
+
+    # Create Credentials object
+    credentials = Credentials.from_service_account_info(
+        service_account_info, scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    
+    # If no exception so far, it means credentials loaded successfully
+    st.success("✅ Service account credentials loaded successfully!")
+
+except Exception as e:
+    st.error(f"❌ Failed to load credentials: {e}")
