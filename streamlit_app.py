@@ -272,7 +272,6 @@ if uploaded_files:
                                 "Geographic Areas": len(structured_data.get("geographicAreas", [])),
                             }
                             df_counts = pd.DataFrame(data_counts.items(), columns=["Category", "Count"])
-                            st.bar_chart(df_counts.set_index("Category"))
 
                         except json.JSONDecodeError:
                             st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
