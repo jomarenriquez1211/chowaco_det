@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import backend  # assumes backend.py is in same folder
+import firebase_database  # assumes backend.py is in same folder
 
 st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
 st.title("📄 PDF to ExtractedReport JSON using Gemini")
