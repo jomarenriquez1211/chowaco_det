@@ -4,7 +4,7 @@ from google.oauth2.service_account import Credentials
 
 try:
     # Load JSON string from Streamlit secrets
-    json_str = st.secrets["gspreads"]["service_account_json"]
+    json_str = st.secrets["gspreads"]
 
     # Parse JSON string to dictionary
     service_account_info = json.loads(json_str)
