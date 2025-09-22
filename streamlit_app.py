@@ -5,6 +5,8 @@ import google.generativeai as genai
 import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, firestore
+from datetime import datetime
+import uuid
 
 # -------- Firestore Initialization --------
 if not firebase_admin._apps:
@@ -24,9 +26,7 @@ model = genai.GenerativeModel("gemini-1.5-flash-latest")
 # -------- Streamlit UI Setup --------
 st.set_page_config(page_title="PDF to ExtractedReport JSON", layout="wide")
 st.title("📄 PDF to ExtractedReport JSON using Gemini")
-st.markdown(
-    "Upload one or more PDF files, and the app will extract structured data according to the `ExtractedReport` interface and upload to Firestore."
-)
+st.markdown("Upload one or more PDF files, and the app will extract structured data according to the `ExtractedReport` interface and upload to Firestore.")
 
 uploaded_files = st.file_uploader(
     "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
@@ -162,7 +162,7 @@ if uploaded_files:
                     st.warning("No text could be extracted from the uploaded PDF.")
                     continue
 
-                prompt = f"""
+                 prompt = f"""
 You are a data extraction assistant specialized in agricultural and environmental reports.
 
 Your task is to extract structured data from the input report text and return it as a valid JSON object that strictly follows the defined schema.
@@ -240,6 +240,7 @@ For the `completionRate`, carefully analyze the entire input text for mentions o
 Begin extraction now.
 """
 
+
                 try:
                     response = model.generate_content(
                         prompt,
@@ -266,18 +267,30 @@ Begin extraction now.
                     display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
                     display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
-                    # Upload to Firestore with sourceFileName included
+                    # -------- 🔥 Enhanced Firestore Upload --------
                     collection_name = "extracted_reports"
-                    doc_ref = db.collection(collection_name).document(uploaded_file.name)
-                    upload_data = {
-                        "sourceFileName": uploaded_file.name,
-                        **structured_data
-                    }
-                    doc_ref.set(upload_data)
+                    base_doc_ref = db.collection(collection_name).document(uploaded_file.name)
 
-                    st.success(f"Data from `{uploaded_file.name}` uploaded successfully to Firestore.")
+                    base_doc_ref.set({
+                        "sourceFileName": uploaded_file.name,
+                        "createdAt": datetime.utcnow(),
+                        "summary": structured_data.get("summary", {})
+                    })
+
+                    section_keys = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+                    for section in section_keys:
+                        items = structured_data.get(section, [])
+                        subcol_ref = base_doc_ref.collection(section)
+
+                        for item in items:
+                            doc_id = item.get("id") or str(uuid.uuid4())
+                            item["id"] = doc_id
+                            item["createdAt"] = datetime.utcnow()
+                            subcol_ref.document(doc_id).set(item)
+
+                    st.success(f"✅ Data from `{uploaded_file.name}` uploaded successfully to Firestore.")
 
                 except json.JSONDecodeError:
-                    st.error("The response could not be parsed as JSON. The Gemini model may have returned an invalid format.")
+                    st.error("❌ The response could not be parsed as JSON. Gemini may have returned an invalid format.")
                 except Exception as e:
-                    st.error(f"An error occurred: {e}")
+                    st.error(f"⚠️ An error occurred: {e}")
