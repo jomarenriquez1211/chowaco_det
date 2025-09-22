@@ -13,12 +13,12 @@ from PIL import Image
 import pytesseract
 from PyPDF2 import PdfReader
 
-# ---------- 🔥 Firebase Initialization ----------
+# -------- Firestore Initialization --------
 if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(os.environ.get("FIREBASE_CREDENTIAL", {})))
+    cred = credentials.Certificate(dict(st.secrets["firebase"]))
     firebase_admin.initialize_app(cred)
-
 db = firestore.client()
+
 
 # ---------- 🤖 Gemini API Setup ----------
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
