@@ -4,5 +4,4 @@ pandas
 google-generativeai
 gspread
 oauth2client
-json
 Credentials
