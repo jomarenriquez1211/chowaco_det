@@ -1,4 +1,3 @@
-
 import os
 import io
 import json
@@ -8,9 +7,10 @@ import google.generativeai as genai
 from firebase_admin import credentials, firestore
 from datetime import datetime
 import pdfplumber
-from pdf2image import convert_from_bytes
+import fitz  # PyMuPDF
 from PIL import Image
 import pytesseract
+import streamlit as st  # Make sure this import stays for st.secrets usage
 
 # -------- Firestore Initialization --------
 if not firebase_admin._apps:
@@ -76,11 +76,11 @@ def generate_structured_data(pdf_text, schema, prompt_template):
     )
     return json.loads(response.text)
 
-# Extract text from PDF (try text extraction, fallback to OCR)
+# Extract text from PDF (try text extraction, fallback to OCR using PyMuPDF)
 def extract_text_from_pdf(uploaded_file):
     text_output = ""
     try:
-        # First try pdfplumber text extraction (fast & accurate for text PDFs)
+        # Try pdfplumber text extraction first
         uploaded_file.seek(0)
         with pdfplumber.open(uploaded_file) as pdf:
             for page in pdf.pages:
@@ -90,11 +90,15 @@ def extract_text_from_pdf(uploaded_file):
         if text_output.strip():
             return text_output
 
-        # OCR fallback - convert pages to images and OCR
+        # OCR fallback - use PyMuPDF to render pages and pytesseract to OCR
         uploaded_file.seek(0)
-        file_bytes = uploaded_file.read()
-        images = convert_from_bytes(file_bytes)
-        for img in images:
+        pdf_bytes = uploaded_file.read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            pix = page.get_pixmap()  # Render page to an image
+            img = Image.open(io.BytesIO(pix.tobytes()))
             text_output += pytesseract.image_to_string(img)
 
         return text_output
