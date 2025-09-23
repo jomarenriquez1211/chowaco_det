@@ -34,11 +34,13 @@ Extract the following sections into JSON. Each field is required — include an 
     - `description`: Detailed explanation of what was implemented.
 
 - **monitoring**: Activities that track or assess progress by measuring specific indicators.
-- Each item must include:
-  - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
-  - `value`: The measured value or status of the metric (can be numeric or descriptive).
-  - `units`: Units of the metric if applicable (e.g., "mg/L", "%", "count").
-  - `description`: Explanation of what the metric represents and how it was obtained.
+  - Each item **must include**:
+    - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
+    - `value`: The measured value or status of the metric (can be numeric or descriptive).
+    - `units`: Units of the metric if applicable (e.g., "mg/L", "%", "count"); use an empty string if not applicable.
+    - `description`: Explanation of what the metric represents and how it was obtained.
+  - Avoid duplicate entries with the same `metricName`.
+
 
 - **outreach**: Community engagement or communication activities.
   - Each must include:
