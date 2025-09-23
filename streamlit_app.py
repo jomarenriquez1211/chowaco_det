@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import pandas as pd
+import pdfplumber
 import firebase_database  # Your backend module
 
 st.set_page_config(page_title="📄 PDF to ExtractedReport JSON", layout="wide")
@@ -14,6 +15,15 @@ prompt_template = firebase_database.get_prompt_template()
 uploaded_files = st.file_uploader(
     "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
 )
+
+def extract_text_from_pdf(file):
+    text = ""
+    with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+    return text
 
 def display_section_df(name, data, columns):
     st.markdown(f"### {name}")
@@ -31,7 +41,7 @@ if uploaded_files:
         for uploaded_file in uploaded_files:
             st.markdown(f"---\n### Processing `{uploaded_file.name}`")
             try:
-                pdf_text = firebase_database.extract_text_from_pdf(uploaded_file)
+                pdf_text = extract_text_from_pdf(uploaded_file)
                 if not pdf_text.strip():
                     st.warning("No text could be extracted from this PDF.")
                     continue
