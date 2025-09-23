@@ -10,7 +10,7 @@ import pdfplumber
 import fitz  # PyMuPDF
 from PIL import Image
 import pytesseract
-import streamlit as st  # Make sure this import stays for st.secrets usage
+import streamlit as st  # For st.secrets usage
 
 # -------- Firestore Initialization --------
 if not firebase_admin._apps:
@@ -76,7 +76,7 @@ def generate_structured_data(pdf_text, schema, prompt_template):
     )
     return json.loads(response.text)
 
-# Extract text from PDF (try text extraction, fallback to OCR using PyMuPDF)
+# Extract text from PDF (try text extraction, fallback to OCR using PyMuPDF + pytesseract)
 def extract_text_from_pdf(uploaded_file):
     text_output = ""
     try:
@@ -95,11 +95,19 @@ def extract_text_from_pdf(uploaded_file):
         pdf_bytes = uploaded_file.read()
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
 
+        zoom = 2  # 2x zoom for better OCR accuracy (~150-200 DPI)
+        mat = fitz.Matrix(zoom, zoom)
+
         for page_num in range(len(doc)):
             page = doc.load_page(page_num)
-            pix = page.get_pixmap()  # Render page to an image
-            img = Image.open(io.BytesIO(pix.tobytes()))
-            text_output += pytesseract.image_to_string(img)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+
+            # Convert pixmap to PIL Image
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+            # Run OCR on image
+            page_text = pytesseract.image_to_string(img)
+            text_output += page_text + "\n\n"
 
         return text_output
 
