@@ -17,7 +17,7 @@ Extract the following sections into JSON. Each field is required — include an 
 
 - **summary**:
   - `totalGoals`: Total number of goal.
-  - `totalBMPs`: Total number of BMP.
+  - `totalBMPs`: Total number of bmps.
   - `completionRate`: A number between 0–100 representing estimated completion (see calculation rules below).
 
 - **goals**: Array of goal objects.
