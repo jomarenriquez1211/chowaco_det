@@ -28,8 +28,8 @@ Extract the following sections into JSON. Each field is required — include an 
  - Must not have duplicate
 
 - **implementation**: Implementation activities that were performed or executed.
-  - Each item must include:
-    - `activity`: Short title of the implementation step with 'Implementation' word in the end.
+  Each item must include:
+    - `activity`: Short title of the implementation step. ⚠️ The title must always end with the word **"Implementation"**. For example: `"Irrigation Systems               Implementation"`, `"Cover Crops Implementation"`.
     - `description`: Detailed explanation of what was implemented.
 
 - **monitoring**: Activities that track or assess progress by measuring specific indicators.
