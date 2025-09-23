@@ -22,8 +22,8 @@ Extract the following sections into JSON. Each field is required — include an 
 
 - **bmps**: Array of BMP (Best Management Practices).
   - Each must include:
-    - `title`: Name of the BMP.
-    - `description`: Description of what it involves.
+    - `title`: Short name of the BMP.
+    - `description`: Explanation of the BMP's content.
     - `category`: Type/classification of the BMP.
 
 - **implementation**: Implementation activities that were performed or executed.
