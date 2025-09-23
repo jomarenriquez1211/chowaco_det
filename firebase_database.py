@@ -21,8 +21,17 @@ except KeyError:
 
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
-# -------- Helper Functions --------
+# ---------- 📄 Load schema & prompt from file ----------
+def get_json_schema():
+    schema_path = Path(__file__).parent / "schema.json"
+    with open(schema_path, "r") as f:
+        return json.load(f)
 
+def get_prompt_template():
+    prompt_path = Path(__file__).parent / "prompt.txt"
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        return f.read()
+        
 def extract_text_from_pdf(pdf_file):
     text_output = ""
     try:
