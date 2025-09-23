@@ -8,3 +8,4 @@ pytesseract
 pillow
 PyPDF2
 pymupdf
+easyocr
