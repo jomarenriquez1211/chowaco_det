@@ -2,6 +2,11 @@ import streamlit as st
 import json
 import pandas as pd
 import pdfplumber
+import fitz  # PyMuPDF
+import easyocr
+import io
+import numpy as np
+from PIL import Image
 import firebase_database  # Your backend module
 
 st.set_page_config(page_title="📄 PDF to ExtractedReport JSON", layout="wide")
@@ -16,6 +21,9 @@ uploaded_files = st.file_uploader(
     "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
 )
 
+# Initialize EasyOCR reader once
+reader = easyocr.Reader(['en'], gpu=False)  # Set gpu=True if you have CUDA-enabled GPU
+
 def extract_text_from_pdf(file):
     text = ""
     with pdfplumber.open(file) as pdf:
@@ -23,6 +31,24 @@ def extract_text_from_pdf(file):
             page_text = page.extract_text()
             if page_text:
                 text += page_text + "\n"
+    return text
+
+def extract_images_from_pdf(file):
+    images = []
+    doc = fitz.open(stream=file.read(), filetype="pdf")
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        pix = page.get_pixmap()
+        img_bytes = pix.tobytes("png")
+        images.append(img_bytes)
+    return images
+
+def ocr_image_with_easyocr(image_bytes):
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    # EasyOCR accepts numpy array
+    img_array = np.array(image)
+    result = reader.readtext(img_array)
+    text = " ".join([res[1] for res in result])
     return text
 
 def display_section_df(name, data, columns):
@@ -41,9 +67,22 @@ if uploaded_files:
         for uploaded_file in uploaded_files:
             st.markdown(f"---\n### Processing `{uploaded_file.name}`")
             try:
+                # Reset file pointer before reading
+                uploaded_file.seek(0)
                 pdf_text = extract_text_from_pdf(uploaded_file)
+
+                # If no embedded text found, use OCR on images
                 if not pdf_text.strip():
-                    st.warning("No text could be extracted from this PDF.")
+                    st.info("No embedded text found, running OCR on images...")
+                    uploaded_file.seek(0)  # Reset again before extracting images
+                    images = extract_images_from_pdf(uploaded_file)
+                    ocr_text = ""
+                    for img_bytes in images:
+                        ocr_text += ocr_image_with_easyocr(img_bytes) + "\n"
+                    pdf_text = ocr_text
+
+                if not pdf_text.strip():
+                    st.warning("No text could be extracted even after OCR.")
                     continue
 
                 structured_data = firebase_database.generate_structured_data(
