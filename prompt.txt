@@ -45,10 +45,12 @@ Extract the following sections into JSON. Each field is required — include an 
     - `activity`: Name of the outreach effort.
     - `description`: Who was engaged and what was shared.
 
-- **geographicAreas**: Locations relevant to the report.
+-**geographicAreas**: Locations relevant to the report.
   - Each must include:
-    - `name`: Name of the area.
-    - `description`: Details about its relevance.
+    - `name`: Name of the geographic area (non-empty string).
+    - `description`: Details about the area's relevance or role in the report (non-empty string).
+  - Ensure there are no duplicate geographic areas based on the `name` field.
+
 
 - **summary**:
   - `totalGoals`: Total number of goal objects extracted in the "goals" array above.
