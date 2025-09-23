@@ -74,6 +74,7 @@ For the `completionRate`, carefully analyze the entire input text for mentions o
 - All required fields must be included.
 - If no entries exist in a category, use an empty array.
 - Follow the schema strictly.
+-- For summary fields like `totalGoals` and `totalBMPs`, count the number of entries in the respective arrays above.
 
 Begin extraction now.
 """
