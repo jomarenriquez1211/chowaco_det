@@ -16,8 +16,8 @@ Your task is to extract structured data from the input report text and return it
 Extract the following sections into JSON. Each field is required — include an empty array if no data is found.
 
 - **summary**:
-  - `totalGoals`: Total number of goal activities.
-  - `totalBMPs`: Total number of BMP activities.
+  - `totalGoals`: Total number of goal.
+  - `totalBMPs`: Total number of BMP.
   - `completionRate`: A number between 0–100 representing estimated completion (see calculation rules below).
 
 - **goals**: Array of goal objects.
