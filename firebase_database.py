@@ -1,11 +1,16 @@
-import pdfplumber
+import os
+import io
 import json
 import uuid
-from datetime import datetime
 import firebase_admin
-from firebase_admin import credentials, firestore
 import google.generativeai as genai
-import streamlit as st  # Needed for secrets
+from firebase_admin import credentials, firestore
+from datetime import datetime
+import pdfplumber
+import fitz  # PyMuPDF
+from PIL import Image
+import pytesseract
+import streamlit as st  # For st.secrets usage
 
 # -------- Firestore Initialization --------
 if not firebase_admin._apps:
@@ -13,81 +18,98 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# -------- Gemini API Setup --------
-try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-except KeyError:
-    raise RuntimeError("API key not found in Streamlit secrets under 'GOOGLE_API_KEY'")
-
+# Configure Gemini API
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    raise ValueError("Missing GOOGLE_API_KEY in environment variables.")
+genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
-# -------- Helper Functions --------
+# Load JSON schema from file
+def get_json_schema():
+    with open("schema.json", "r", encoding="utf-8") as f:
+        return json.load(f)
 
-def extract_text_from_pdf(pdf_file):
-    text_output = ""
-    try:
-        with pdfplumber.open(pdf_file) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text_output += page_text + "\n"
-    except Exception as e:
-        raise RuntimeError(f"Failed to read PDF: {e}")
-    return text_output
+# Load prompt template from file
+def get_prompt_template():
+    with open("prompt.txt", "r", encoding="utf-8") as f:
+        return f.read()
 
+# Upload structured data to Firestore
+def upload_data_normalized(file_name, summary, structured_data):
+    collection_name = "extracted_reports"
+    base_doc_ref = db.collection(collection_name).document(file_name)
 
-def generate_structured_data(pdf_text, json_schema, prompt_template):
-    prompt = prompt_template.format(pdf_text=pdf_text)
+    # Set base document with summary
+    base_doc_ref.set({
+        "sourceFileName": file_name,
+        "createdAt": datetime.utcnow(),
+        "summary": summary
+    })
+
+    section_keys = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+
+    # Delete old subcollections if any
+    for section in section_keys:
+        docs = base_doc_ref.collection(section).stream()
+        for doc in docs:
+            doc.reference.delete()
+
+    # Upload new data
+    for section in section_keys:
+        items = structured_data.get(section, [])
+        for item in items:
+            doc_id = item.get("id") or str(uuid.uuid4())
+            item["id"] = doc_id
+            item["createdAt"] = datetime.utcnow()
+            base_doc_ref.collection(section).document(doc_id).set(item)
+
+# Generate structured data from PDF text
+def generate_structured_data(pdf_text, schema, prompt_template):
+    prompt = prompt_template.replace("{pdf_text}", pdf_text)
     response = model.generate_content(
         prompt,
         generation_config={
             "response_mime_type": "application/json",
-            "response_schema": json_schema,
+            "response_schema": schema,
         },
     )
     return json.loads(response.text)
 
+# Extract text from PDF (try text extraction, fallback to OCR using PyMuPDF + pytesseract)
+def extract_text_from_pdf(uploaded_file):
+    text_output = ""
+    try:
+        # Try pdfplumber text extraction first
+        uploaded_file.seek(0)
+        with pdfplumber.open(uploaded_file) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_output += page_text + "\n"
+        if text_output.strip():
+            return text_output
 
-def delete_existing_docs(collection_name, file_name):
-    coll_ref = db.collection(collection_name)
-    docs = coll_ref.where("sourceFileName", "==", file_name).stream()
-    batch = db.batch()
-    count = 0
-    for doc in docs:
-        batch.delete(doc.reference)
-        count += 1
-        if count % 500 == 0:
-            batch.commit()
-            batch = db.batch()
-    batch.commit()
+        # OCR fallback - use PyMuPDF to render pages and pytesseract to OCR
+        uploaded_file.seek(0)
+        pdf_bytes = uploaded_file.read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
 
+        zoom = 2  # 2x zoom for better OCR accuracy (~150-200 DPI)
+        mat = fitz.Matrix(zoom, zoom)
 
-def upload_data_normalized(file_name, summary, structured_data):
-    # Delete previous summary doc for this file
-    db.collection("summaries").document(file_name).delete()
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
 
-    # Delete previous docs in all sections for this file
-    sections = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
-    for section in sections:
-        delete_existing_docs(section, file_name)
+            # Convert pixmap to PIL Image
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-    # Upload summary doc
-    db.collection("summaries").document(file_name).set({
-        "sourceFileName": file_name,
-        "createdAt": datetime.utcnow(),
-        **summary
-    })
+            # Run OCR on image
+            page_text = pytesseract.image_to_string(img)
+            text_output += page_text + "\n\n"
 
-    # Upload section documents
-    for section in sections:
-        coll_ref = db.collection(section)
-        batch = db.batch()
-        for item in structured_data.get(section, []):
-            doc_id = item.get("id") or str(uuid.uuid4())
-            doc_ref = coll_ref.document(doc_id)
-            batch.set(doc_ref, {
-                **item,
-                "sourceFileName": file_name,
-                "createdAt": datetime.utcnow()
-            })
-        batch.commit()
+        return text_output
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to extract text from PDF: {e}")
