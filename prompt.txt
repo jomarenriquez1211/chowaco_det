@@ -25,6 +25,7 @@ Extract the following sections into JSON. Each field is required — include an 
     - `title`: Short name of the BMP.
     - `description`: Explanation of the BMP's content.
     - `category`: Type/classification of the BMP.
+ - Must not have duplicate
 
 - **implementation**: Implementation activities that were performed or executed.
   - Each item must include:
