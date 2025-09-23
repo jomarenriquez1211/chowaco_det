@@ -25,7 +25,7 @@ Extract the following sections into JSON. Each field is required — include an 
     - `title`: Short name of the goal.
     - `description`: Explanation of the goal’s purpose or intent.
 
-- **bmps**: Array of BMP (Best Management Practice) objects that were performed or execute.
+- **bmps**: Array of BMP (Best Management Practices).
   - Each must include:
     - `title`: Name of the BMP.
     - `description`: Description of what it involves.
