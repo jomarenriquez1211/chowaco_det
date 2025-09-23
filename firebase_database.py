@@ -1,115 +1,75 @@
-import os
-import io
+import streamlit as st
 import json
-import uuid
-import firebase_admin
-import google.generativeai as genai
-from firebase_admin import credentials, firestore
-from datetime import datetime
+import pandas as pd
 import pdfplumber
-import fitz  # PyMuPDF
-from PIL import Image
-import pytesseract
-import streamlit as st  # For st.secrets usage
+import firebase_database  # Your backend module
 
-# -------- Firestore Initialization --------
-if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["firebase"]))
-    firebase_admin.initialize_app(cred)
-db = firestore.client()
+st.set_page_config(page_title="📄 PDF to ExtractedReport JSON", layout="wide")
+st.title("📄 PDF to ExtractedReport JSON using Gemini")
+st.markdown("Upload one or more PDF files. The app will extract structured data and upload it to Firestore.")
 
-# Configure Gemini API
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-if not GOOGLE_API_KEY:
-    raise ValueError("Missing GOOGLE_API_KEY in environment variables.")
-genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash-latest")
+# Load schema & prompt from backend
+json_schema = firebase_database.get_json_schema()
+prompt_template = firebase_database.get_prompt_template()
 
-# Load JSON schema from file
-def get_json_schema():
-    with open("schema.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+uploaded_files = st.file_uploader(
+    "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
+)
 
-# Load prompt template from file
-def get_prompt_template():
-    with open("prompt.txt", "r", encoding="utf-8") as f:
-        return f.read()
+def extract_text_from_pdf(file):
+    text = ""
+    with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+    return text
 
-# Upload structured data to Firestore
-def upload_data_normalized(file_name, summary, structured_data):
-    collection_name = "extracted_reports"
-    base_doc_ref = db.collection(collection_name).document(file_name)
+def display_section_df(name, data, columns):
+    st.markdown(f"### {name}")
+    if data:
+        df = pd.DataFrame(data)
+        if columns:
+            available_cols = [col for col in columns if col in df.columns]
+            df = df[available_cols]
+        st.dataframe(df)
+    else:
+        st.info("No data available.")
 
-    # Set base document with summary
-    base_doc_ref.set({
-        "sourceFileName": file_name,
-        "createdAt": datetime.utcnow(),
-        "summary": summary
-    })
+if uploaded_files:
+    if st.button("Extract & Upload to Firestore"):
+        for uploaded_file in uploaded_files:
+            st.markdown(f"---\n### Processing `{uploaded_file.name}`")
+            try:
+                pdf_text = extract_text_from_pdf(uploaded_file)
+                if not pdf_text.strip():
+                    st.warning("No text could be extracted from this PDF.")
+                    continue
 
-    section_keys = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+                structured_data = firebase_database.generate_structured_data(
+                    pdf_text, json_schema, prompt_template
+                )
+                summary = structured_data.get("summary", {})
 
-    # Delete old subcollections if any
-    for section in section_keys:
-        docs = base_doc_ref.collection(section).stream()
-        for doc in docs:
-            doc.reference.delete()
+                # Display summary metrics
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Total Goals", summary.get("totalGoals", 0))
+                col2.metric("Total BMPs", summary.get("totalBMPs", 0))
+                col3.metric("Completion Rate", f"{summary.get('completionRate', 0)}%")
 
-    # Upload new data
-    for section in section_keys:
-        items = structured_data.get(section, [])
-        for item in items:
-            doc_id = item.get("id") or str(uuid.uuid4())
-            item["id"] = doc_id
-            item["createdAt"] = datetime.utcnow()
-            base_doc_ref.collection(section).document(doc_id).set(item)
+                # Display extracted tables
+                display_section_df("Goals", structured_data.get("goals", []), ["id", "title", "description"])
+                display_section_df("BMPs", structured_data.get("bmps", []), ["id", "title", "description", "category"])
+                display_section_df("Implementation Activities", structured_data.get("implementation", []), ["id", "activity", "description"])
+                display_section_df("Monitoring Activities", structured_data.get("monitoring", []), ["id", "metricName", "value", "units", "description"])
+                display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
+                display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
-# Generate structured data from PDF text
-def generate_structured_data(pdf_text, schema, prompt_template):
-    prompt = prompt_template.replace("{pdf_text}", pdf_text)
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "response_mime_type": "application/json",
-            "response_schema": schema,
-        },
-    )
-    return json.loads(response.text)
+                # Upload to Firestore
+                firebase_database.upload_data_normalized(uploaded_file.name, summary, structured_data)
+                st.success(f"✅ Uploaded `{uploaded_file.name}` to Firestore!")
 
-# Extract text from PDF (try text extraction, fallback to OCR using PyMuPDF + pytesseract)
-def extract_text_from_pdf(uploaded_file):
-    text_output = ""
-    try:
-        # Try pdfplumber text extraction first
-        uploaded_file.seek(0)
-        with pdfplumber.open(uploaded_file) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text_output += page_text + "\n"
-        if text_output.strip():
-            return text_output
-
-        # OCR fallback - use PyMuPDF to render pages and pytesseract to OCR
-        uploaded_file.seek(0)
-        pdf_bytes = uploaded_file.read()
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-
-        zoom = 2  # 2x zoom for better OCR accuracy (~150-200 DPI)
-        mat = fitz.Matrix(zoom, zoom)
-
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            pix = page.get_pixmap(matrix=mat, alpha=False)
-
-            # Convert pixmap to PIL Image
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-
-            # Run OCR on image
-            page_text = pytesseract.image_to_string(img)
-            text_output += page_text + "\n\n"
-
-        return text_output
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to extract text from PDF: {e}")
+            except json.JSONDecodeError:
+                st.error("❌ Failed to parse JSON from Gemini.")
+            except Exception as e:
+                st.error(f"⚠️ Error: {e}")
