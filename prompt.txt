@@ -29,7 +29,7 @@ Extract the following sections into JSON. Each field is required — include an 
 
 - **implementation**: Implementation activities that were performed or executed.
   - Each item must include:
-    - `activity`: Short name of the implementation step.
+    - `activity`: Short title of the implementation step with 'Implementation' word in the end.
     - `description`: Detailed explanation of what was implemented.
 
 - **monitoring**: Activities that track or assess progress by measuring specific indicators.
