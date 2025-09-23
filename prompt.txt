@@ -31,7 +31,7 @@ Extract the following sections into JSON. Each field is required — include an 
     - `activity`: Short name of the implementation step.
     - `description`: Detailed explanation of what was implemented.
 
-**monitoring**: Activities that track or assess progress by measuring specific indicators.
+- **monitoring**: Activities that track or assess progress by measuring specific indicators.
 - Each item must include:
   - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
   - `value`: The measured value or status of the metric (can be numeric or descriptive).
@@ -49,10 +49,9 @@ Extract the following sections into JSON. Each field is required — include an 
     - `description`: Details about its relevance.
 
 - **summary**:
-  - `totalGoals`: Total number of goal.
-  - `totalBMPs`: Total number of bmps.
+  - `totalGoals`: Total number of goal objects extracted in the "goals" array above.
+  - `totalBMPs`: Total number of BMP entries extracted in the "bmps" array above.
   - `completionRate`: A number between 0–100 representing estimated completion (see calculation rules below).
-
 
 ---
 
