@@ -31,7 +31,7 @@ Extract the following sections into JSON. Each field is required — include an 
     - `description`: Description of what it involves.
     - `category`: Type/classification of the BMP.
 
-- **implementation**: On-the-ground activities that were performed or executed.
+- **implementation**: Implementation activities that were performed or executed.
   - Each item must include:
     - `activity`: Short name of the implementation step.
     - `description`: Detailed explanation of what was implemented.
