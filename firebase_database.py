@@ -1,75 +1,93 @@
-import streamlit as st
-import json
-import pandas as pd
 import pdfplumber
-import firebase_database  # Your backend module
+import json
+import uuid
+from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
+import google.generativeai as genai
+import streamlit as st  # Needed for secrets
 
-st.set_page_config(page_title="📄 PDF to ExtractedReport JSON", layout="wide")
-st.title("📄 PDF to ExtractedReport JSON using Gemini")
-st.markdown("Upload one or more PDF files. The app will extract structured data and upload it to Firestore.")
+# -------- Firestore Initialization --------
+if not firebase_admin._apps:
+    cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    firebase_admin.initialize_app(cred)
+db = firestore.client()
 
-# Load schema & prompt from backend
-json_schema = firebase_database.get_json_schema()
-prompt_template = firebase_database.get_prompt_template()
+# -------- Gemini API Setup --------
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+except KeyError:
+    raise RuntimeError("API key not found in Streamlit secrets under 'GOOGLE_API_KEY'")
 
-uploaded_files = st.file_uploader(
-    "Drag and drop PDF files here", type="pdf", accept_multiple_files=True
-)
+model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
-def extract_text_from_pdf(file):
-    text = ""
-    with pdfplumber.open(file) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-    return text
+# -------- Helper Functions --------
 
-def display_section_df(name, data, columns):
-    st.markdown(f"### {name}")
-    if data:
-        df = pd.DataFrame(data)
-        if columns:
-            available_cols = [col for col in columns if col in df.columns]
-            df = df[available_cols]
-        st.dataframe(df)
-    else:
-        st.info("No data available.")
+def extract_text_from_pdf(pdf_file):
+    text_output = ""
+    try:
+        with pdfplumber.open(pdf_file) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_output += page_text + "\n"
+    except Exception as e:
+        raise RuntimeError(f"Failed to read PDF: {e}")
+    return text_output
 
-if uploaded_files:
-    if st.button("Extract & Upload to Firestore"):
-        for uploaded_file in uploaded_files:
-            st.markdown(f"---\n### Processing `{uploaded_file.name}`")
-            try:
-                pdf_text = extract_text_from_pdf(uploaded_file)
-                if not pdf_text.strip():
-                    st.warning("No text could be extracted from this PDF.")
-                    continue
 
-                structured_data = firebase_database.generate_structured_data(
-                    pdf_text, json_schema, prompt_template
-                )
-                summary = structured_data.get("summary", {})
+def generate_structured_data(pdf_text, json_schema, prompt_template):
+    prompt = prompt_template.format(pdf_text=pdf_text)
+    response = model.generate_content(
+        prompt,
+        generation_config={
+            "response_mime_type": "application/json",
+            "response_schema": json_schema,
+        },
+    )
+    return json.loads(response.text)
 
-                # Display summary metrics
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Total Goals", summary.get("totalGoals", 0))
-                col2.metric("Total BMPs", summary.get("totalBMPs", 0))
-                col3.metric("Completion Rate", f"{summary.get('completionRate', 0)}%")
 
-                # Display extracted tables
-                display_section_df("Goals", structured_data.get("goals", []), ["id", "title", "description"])
-                display_section_df("BMPs", structured_data.get("bmps", []), ["id", "title", "description", "category"])
-                display_section_df("Implementation Activities", structured_data.get("implementation", []), ["id", "activity", "description"])
-                display_section_df("Monitoring Activities", structured_data.get("monitoring", []), ["id", "metricName", "value", "units", "description"])
-                display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
-                display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
+def delete_existing_docs(collection_name, file_name):
+    coll_ref = db.collection(collection_name)
+    docs = coll_ref.where("sourceFileName", "==", file_name).stream()
+    batch = db.batch()
+    count = 0
+    for doc in docs:
+        batch.delete(doc.reference)
+        count += 1
+        if count % 500 == 0:
+            batch.commit()
+            batch = db.batch()
+    batch.commit()
 
-                # Upload to Firestore
-                firebase_database.upload_data_normalized(uploaded_file.name, summary, structured_data)
-                st.success(f"✅ Uploaded `{uploaded_file.name}` to Firestore!")
 
-            except json.JSONDecodeError:
-                st.error("❌ Failed to parse JSON from Gemini.")
-            except Exception as e:
-                st.error(f"⚠️ Error: {e}")
+def upload_data_normalized(file_name, summary, structured_data):
+    # Delete previous summary doc for this file
+    db.collection("summaries").document(file_name).delete()
+
+    # Delete previous docs in all sections for this file
+    sections = ["goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
+    for section in sections:
+        delete_existing_docs(section, file_name)
+
+    # Upload summary doc
+    db.collection("summaries").document(file_name).set({
+        "sourceFileName": file_name,
+        "createdAt": datetime.utcnow(),
+        **summary
+    })
+
+    # Upload section documents
+    for section in sections:
+        coll_ref = db.collection(section)
+        batch = db.batch()
+        for item in structured_data.get(section, []):
+            doc_id = item.get("id") or str(uuid.uuid4())
+            doc_ref = coll_ref.document(doc_id)
+            batch.set(doc_ref, {
+                **item,
+                "sourceFileName": file_name,
+                "createdAt": datetime.utcnow()
+            })
+        batch.commit()
