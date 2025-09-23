@@ -1,5 +1,5 @@
 # Prompt template (same as before, just insert {pdf_text})
-prompt = """
+prompt_template = """
 You are a data extraction assistant specialized in agricultural and environmental reports.
 
 Your task is to extract structured data from the input report text and return it as a valid JSON object that strictly follows the defined schema.
