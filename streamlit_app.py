@@ -100,7 +100,7 @@ if uploaded_files:
                 display_section_df("Goals", structured_data.get("goals", []), ["id", "title", "description"])
                 display_section_df("BMPs", structured_data.get("bmps", []), ["id", "title", "description", "category"])
                 display_section_df("Implementation Activities", structured_data.get("implementation", []), ["id", "activity", "description"])
-                display_section_df("Monitoring Activities", structured_data.get("monitoring", []), ["id", "metricName", "value", "units", "description"])
+                display_section_df("Monitoring Metrics", structured_data.get("monitoring", []), ["id", "metricName", "value", "units", "description"])
                 display_section_df("Outreach Activities", structured_data.get("outreach", []), ["id", "activity", "description"])
                 display_section_df("Geographic Areas", structured_data.get("geographicAreas", []), ["id", "name", "description"])
 
