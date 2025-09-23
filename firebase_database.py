@@ -1,3 +1,4 @@
+
 import os
 import io
 import json
@@ -7,10 +8,9 @@ import google.generativeai as genai
 from firebase_admin import credentials, firestore
 from datetime import datetime
 import pdfplumber
-import fitz  # PyMuPDF
+from pdf2image import convert_from_bytes
 from PIL import Image
 import pytesseract
-import streamlit as st  # For st.secrets usage
 
 # -------- Firestore Initialization --------
 if not firebase_admin._apps:
@@ -76,11 +76,11 @@ def generate_structured_data(pdf_text, schema, prompt_template):
     )
     return json.loads(response.text)
 
-# Extract text from PDF (try text extraction, fallback to OCR using PyMuPDF + pytesseract)
+# Extract text from PDF (try text extraction, fallback to OCR)
 def extract_text_from_pdf(uploaded_file):
     text_output = ""
     try:
-        # Try pdfplumber text extraction first
+        # First try pdfplumber text extraction (fast & accurate for text PDFs)
         uploaded_file.seek(0)
         with pdfplumber.open(uploaded_file) as pdf:
             for page in pdf.pages:
@@ -90,24 +90,12 @@ def extract_text_from_pdf(uploaded_file):
         if text_output.strip():
             return text_output
 
-        # OCR fallback - use PyMuPDF to render pages and pytesseract to OCR
+        # OCR fallback - convert pages to images and OCR
         uploaded_file.seek(0)
-        pdf_bytes = uploaded_file.read()
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-
-        zoom = 2  # 2x zoom for better OCR accuracy (~150-200 DPI)
-        mat = fitz.Matrix(zoom, zoom)
-
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            pix = page.get_pixmap(matrix=mat, alpha=False)
-
-            # Convert pixmap to PIL Image
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-
-            # Run OCR on image
-            page_text = pytesseract.image_to_string(img)
-            text_output += page_text + "\n\n"
+        file_bytes = uploaded_file.read()
+        images = convert_from_bytes(file_bytes)
+        for img in images:
+            text_output += pytesseract.image_to_string(img)
 
         return text_output
 
