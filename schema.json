@@ -16,13 +16,14 @@
         "type": "object",
         "properties": {
           "name": { "type": "string" },
-          "status": { "type": "string" },
+          "status": { "type": ["string", "null"] },
           "target": { "type": ["string", "null"] },
           "progress": { "type": ["number", "null"] }
         },
         "required": ["name", "status"]
       }
     },
+
     "bmps": {
       "type": "array",
       "items": {
