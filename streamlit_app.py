@@ -34,61 +34,92 @@ def extract_text_from_pdf(pdf_file):
 
 # ---------- LLM Extraction ----------
 def llm_extract(text: str):
-    prompt = f"""
-    You are a domain expert in agriculture, watershed management, and government reporting. 
-    Extract structured, insightful data from the following report and return ONLY one valid JSON object.
+    prompt_template = """
+You are a data extraction assistant specialized in agricultural and environmental government reports.
 
-    The JSON must strictly follow this structure:
+Your task is to extract structured, insightful data from the input report text and return it as a valid JSON object that strictly follows the defined schema.
 
-    {{
-      "summary": {{
-        "totalGoals": number,
-        "totalBMPs": number,
-        "completionRate": number
-      }},
-      "goals": [
-        {{ "name": string, "status": string, "target": string, "progress": number }}
-      ],
-      "bmps": [
-        {{ "type": string, "quantity": number, "cost": number }}
-      ],
-      "implementation": [
-        {{ "name": string, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "status": string }}
-      ],
-      "monitoring": [
-        {{ "metricName": string, "baseline": string, "target": string }}
-      ],
-      "outreach": [
-        {{ "type": string, "count": number }}
-      ],
-      "geographicAreas": [
-        {{ "name": string, "acres": number, "croplandPct": number, "wetlandPct": number }}
-      ]
-    }}
+---
+📄 Input Text:
+{text}
 
-    ⚠️ RULES FOR DATA:
-    - If a value is missing, use null (never empty string).
-    - Dates must be ISO (YYYY-MM-DD). If vague like "Month 1–36", set to null.
-    - Numeric fields (quantities, costs, progress, completionRate, counts, percentages, acres) must be plain numbers only.
-    - Progress must be a percentage (0–100). If qualitative, estimate based on report (e.g., "partially complete" ≈ 50).
-    - For environmental metrics (baseline, target), preserve units (e.g., "5.0 mg/L").
-    - For costs, remove currency symbols and round to nearest whole number.
-    - For goals, status must be one of: "Not Started", "In Progress", "Completed".
-    - If a section has no data, return [].
-    - Always output ALL top-level keys, even if empty.
-    - Return ONLY valid JSON. Do not add commentary or markdown.
+---
+🧩 JSON Structure (Schema):
 
-    ✅ Examples of good output:
-    - "status": "In Progress"
-    - "completionRate": 72
-    - "progress": 45
-    - "startDate": "2021-01-01"
-    - "baseline": "7.5 pH"
-    - "croplandPct": 77
+Extract the following sections into JSON. Each field is required — include an empty array if no data is found.
 
-    Report Text:
-    {text}
-    """
+- **goals**: Array of goal objects.
+  - Each must include:
+    - `title`: Short name of the goal.
+    - `description`: Explanation of the goal’s purpose or intent.
+    - `status`: One of: "Not Started", "In Progress", "Completed".
+    - `target`: The quantitative or qualitative target of the goal (string, may include units).
+    - `progress`: A number 0–100 representing % completion (estimate if qualitative).
+
+- **bmps**: Array of BMP (Best Management Practices).
+  - Each must include:
+    - `title`: Short name of the BMP (must be unique).
+    - `description`: Explanation of the BMP's content.
+    - `category`: Type/classification of the BMP.
+    - `quantity`: Numeric quantity (acres, units, etc.).
+    - `cost`: Numeric cost in whole dollars (no $ or commas).
+
+- **implementation**: Implementation activities that were performed or executed.
+  - Each must include:
+    - `activity`: Short title of the implementation step. ⚠️ Must always end with the word "Implementation".
+    - `description`: Detailed explanation of what was implemented.
+    - `startDate`: In ISO `YYYY-MM-DD` format, or null if not specified.
+    - `endDate`: In ISO `YYYY-MM-DD` format, or null if not specified.
+    - `status`: One of: "Not Started", "In Progress", "Completed".
+
+- **monitoring**: Activities that track or assess progress by measuring specific indicators.
+  - Each must include:
+    - `metricName`: Name of the metric being measured (e.g., "Water pH", "Soil Moisture").
+    - `value`: The measured value (string or numeric).
+    - `units`: Units of the metric if applicable (e.g., "mg/L", "%", "count"); empty string if none.
+    - `baseline`: Baseline condition (string).
+    - `target`: Target condition (string).
+    - `description`: Explanation of what the metric represents and how it was obtained.
+  - Avoid duplicates with the same `metricName`.
+
+- **outreach**: Community engagement or communication activities.
+  - Each must include:
+    - `activity`: Name of the outreach effort.
+    - `description`: Who was engaged and what was shared.
+    - `count`: Numeric count of times it occurred (default 0 if not given).
+
+- **geographicAreas**: Locations relevant to the report.
+  - Each must include:
+    - `name`: Name of the geographic area (non-empty string, must be unique).
+    - `description`: Details about the area's relevance or role in the report (non-empty string).
+    - `acres`: Total size in acres (numeric).
+    - `croplandPct`: Percentage of cropland (0–100).
+    - `wetlandPct`: Percentage of wetland (0–100).
+
+- **summary**:
+  - `totalGoals`: Count of goals extracted.
+  - `totalBMPs`: Count of BMPs extracted.
+  - `completionRate`: A number between 0–100 representing estimated completion (see rules below).
+
+---
+⚠️ COMPLETION RATE RULES:
+- Carefully analyze mentions of completed activities, BMPs, milestones, or progress statements.
+- Estimate overall completion as a numeric % (0–100).
+- Consider both explicit data (e.g., "70% complete") and qualitative cues (e.g., "most activities completed").
+- Use reasoning, not a fixed formula. Round to the nearest integer.
+- If no progress information, default to 0.
+
+---
+✅ OUTPUT RULES:
+- If missing, use null (not empty string).
+- Numeric fields (progress, completionRate, quantity, cost, acres, counts, percentages) must be plain numbers.
+- Dates must be ISO (YYYY-MM-DD) or null.
+- Always output all top-level keys, even if arrays are empty.
+- Output ONLY a valid JSON object. No explanations or markdown.
+
+Begin extraction now.
+"""
+
     response = model.generate_content(prompt)
     return response.text
 
