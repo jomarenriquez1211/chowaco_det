@@ -1,9 +1,11 @@
 import streamlit as st
 import pdfplumber
-import google.generativeai as genai
 import json
+import jsonschema
+from jsonschema import validate
+import google.generativeai as genai
 
-# ----------------- Gemini Setup -----------------
+# -------- Gemini Setup --------
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except KeyError:
@@ -12,20 +14,31 @@ except KeyError:
 
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
-# ----------------- PDF Extraction -----------------
+# -------- Helpers --------
 def extract_text_from_pdf(pdf_file):
+    """Extract raw text from uploaded PDF"""
     text_output = ""
-    try:
-        with pdfplumber.open(pdf_file) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text_output += page_text + "\n"
-    except Exception as e:
-        st.error(f"❌ Failed to read PDF: {e}")
+    with pdfplumber.open(pdf_file) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text_output += page_text + "\n"
     return text_output
 
-# ----------------- LLM Extraction -----------------
+def get_json_schema():
+    """Load dashboard schema definition from schema.json"""
+    with open("schema.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def validate_json(data, schema):
+    """Validate data against schema.json"""
+    try:
+        validate(instance=data, schema=schema)
+        return True, None
+    except jsonschema.exceptions.ValidationError as e:
+        return False, str(e)
+
+# -------- LLM Extraction --------
 def llm_extract(text: str):
     prompt = f"""
     Extract the following fields from this watershed report
@@ -43,33 +56,39 @@ def llm_extract(text: str):
 
     Text: {text}
     """
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        st.error(f"❌ Gemini extraction failed: {e}")
-        return "{}"
+    response = model.generate_content(prompt)
+    return response.text
 
-# ----------------- Streamlit UI -----------------
-st.title("📑 Bear Lake Watershed Report Extractor")
+# -------- Streamlit App --------
+st.title("📑 Watershed Report Extractor with Schema Validation")
 
-uploaded_file = st.file_uploader("Upload your watershed PDF", type=["pdf"])
+uploaded_file = st.file_uploader("Upload a Watershed Report (PDF)", type=["pdf"])
 
 if uploaded_file:
     st.success("✅ File uploaded successfully")
-    with st.spinner("Extracting text..."):
+
+    with st.spinner("Extracting text from PDF..."):
         text = extract_text_from_pdf(uploaded_file)
+    st.text_area("Raw PDF Text (preview)", text[:1200] + "...", height=200)
 
-    if text:
-        st.text_area("Extracted Raw Text (preview)", text[:1000] + "...", height=200)
+    if st.button("Run LLM Extraction"):
+        with st.spinner("Calling Gemini..."):
+            raw_output = llm_extract(text)
 
-        if st.button("Run LLM Extraction"):
-            with st.spinner("Sending to Gemini..."):
-                extracted_json = llm_extract(text)
+        try:
+            parsed = json.loads(raw_output)
+        except Exception as e:
+            st.error(f"⚠️ JSON parsing failed: {e}")
+            st.text_area("Raw LLM output", raw_output, height=300)
+            st.stop()
 
-            try:
-                structured_data = json.loads(extracted_json)
-                st.json(structured_data)  # pretty display
-            except json.JSONDecodeError:
-                st.error("⚠️ LLM output is not valid JSON. Check raw output below:")
-                st.text(extracted_json)
+        schema = get_json_schema()
+        is_valid, error_msg = validate_json(parsed, schema)
+
+        if is_valid:
+            st.success("✅ JSON is valid against schema!")
+            st.json(parsed)  # pretty-printed JSON, ready for dashboard
+        else:
+            st.error("⚠️ JSON does not match schema")
+            st.text(error_msg)
+            st.text_area("Raw LLM output", raw_output, height=300)
