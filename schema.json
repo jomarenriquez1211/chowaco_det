@@ -4,9 +4,9 @@
     "summary": {
       "type": "object",
       "properties": {
-        "totalGoals": { "type": ["integer", "null"] },
-        "totalBMPs": { "type": ["integer", "null"] },
-        "completionRate": { "type": ["number", "null"] }
+        "totalGoals": { "type": "number" },
+        "totalBMPs": { "type": "number" },
+        "completionRate": { "type": "number", "minimum": 0, "maximum": 100 }
       },
       "required": ["totalGoals", "totalBMPs", "completionRate"]
     },
@@ -15,25 +15,27 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "status": { "type": ["string", "null"] },
+          "title": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "status": { "type": ["string", "null"], "enum": ["Not Started", "In Progress", "Completed", null] },
           "target": { "type": ["string", "null"] },
-          "progress": { "type": ["number", "null"] }
+          "progress": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
         },
-        "required": ["name", "status"]
+        "required": ["title", "status", "progress"]
       }
     },
-
     "bmps": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "type": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "category": { "type": ["string", "null"] },
           "quantity": { "type": ["number", "null"] },
           "cost": { "type": ["number", "null"] }
         },
-        "required": ["type"]
+        "required": ["title", "quantity", "cost"]
       }
     },
     "implementation": {
@@ -41,12 +43,13 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "startDate": { "type": ["string", "null"] },
-          "endDate": { "type": ["string", "null"] },
-          "status": { "type": ["string", "null"] }
+          "activity": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "startDate": { "type": ["string", "null"], "format": "date" },
+          "endDate": { "type": ["string", "null"], "format": "date" },
+          "status": { "type": ["string", "null"], "enum": ["Not Started", "In Progress", "Completed", null] }
         },
-        "required": ["name", "status"]
+        "required": ["activity", "status"]
       }
     },
     "monitoring": {
@@ -55,10 +58,13 @@
         "type": "object",
         "properties": {
           "metricName": { "type": "string" },
+          "value": { "type": ["string", "null"] },
+          "units": { "type": ["string", "null"] },
+          "description": { "type": ["string", "null"] },
           "baseline": { "type": ["string", "null"] },
           "target": { "type": ["string", "null"] }
         },
-        "required": ["metricName"]
+        "required": ["metricName", "value", "units"]
       }
     },
     "outreach": {
@@ -66,10 +72,11 @@
       "items": {
         "type": "object",
         "properties": {
-          "type": { "type": "string" },
+          "activity": { "type": "string" },
+          "description": { "type": ["string", "null"] },
           "count": { "type": ["number", "null"] }
         },
-        "required": ["type"]
+        "required": ["activity", "count"]
       }
     },
     "geographicAreas": {
@@ -78,11 +85,12 @@
         "type": "object",
         "properties": {
           "name": { "type": "string" },
+          "description": { "type": ["string", "null"] },
           "acres": { "type": ["number", "null"] },
-          "croplandPct": { "type": ["number", "null"] },
-          "wetlandPct": { "type": ["number", "null"] }
+          "croplandPct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+          "wetlandPct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
         },
-        "required": ["name"]
+        "required": ["name", "acres"]
       }
     }
   },
