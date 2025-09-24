@@ -1,4 +1,4 @@
-import openai
+import google.generativeai as genai
 import pdfplumber
 
 def extract_text_from_pdf(uploaded_file):
@@ -23,7 +23,7 @@ def llm_extract(text):
     
     Text: {text}
     """
-    response = openai.ChatCompletion.create(
+    response = genai.ChatCompletion.create(
         model="gpt-4",
         messages=[{"role": "system", "content": "You are a data extractor."},
                   {"role": "user", "content": prompt}]
