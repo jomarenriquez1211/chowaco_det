@@ -1,6 +1,7 @@
 import streamlit as st
 import pdfplumber
 import json
+import re
 import jsonschema
 from jsonschema import validate
 import google.generativeai as genai
@@ -37,6 +38,21 @@ def validate_json(data, schema):
         return True, None
     except jsonschema.exceptions.ValidationError as e:
         return False, str(e)
+
+def sanitize_llm_output(text: str) -> str:
+    """Clean Gemini output so it can be parsed as JSON."""
+    if not text:
+        return ""
+    # Remove markdown code fences
+    text = re.sub(r"```(?:json)?", "", text)
+    # Strip whitespace
+    text = text.strip()
+    # Extract first {...} block
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1:
+        text = text[start:end+1]
+    return text
 
 # -------- LLM Extraction --------
 def llm_extract(text: str):
@@ -75,11 +91,14 @@ if uploaded_file:
         with st.spinner("Calling Gemini..."):
             raw_output = llm_extract(text)
 
+        sanitized = sanitize_llm_output(raw_output)
+
         try:
-            parsed = json.loads(raw_output)
+            parsed = json.loads(sanitized)
         except Exception as e:
             st.error(f"⚠️ JSON parsing failed: {e}")
-            st.text_area("Raw LLM output", raw_output, height=300)
+            st.text_area("Raw LLM output", raw_output, height=250)
+            st.text_area("Sanitized attempt", sanitized, height=250)
             st.stop()
 
         schema = get_json_schema()
@@ -87,8 +106,9 @@ if uploaded_file:
 
         if is_valid:
             st.success("✅ JSON is valid against schema!")
-            st.json(parsed)  # pretty-printed JSON, ready for dashboard
+            st.json(parsed)
         else:
             st.error("⚠️ JSON does not match schema")
             st.text(error_msg)
-            st.text_area("Raw LLM output", raw_output, height=300)
+            st.text_area("Raw LLM output", raw_output, height=250)
+            st.text_area("Sanitized attempt", sanitized, height=250)
