@@ -35,8 +35,10 @@ def extract_text_from_pdf(pdf_file):
 # ---------- LLM Extraction ----------
 def llm_extract(text: str):
     prompt = f"""
-    You are a data extractor.
-    Analyze the following watershed report and return ONLY one valid JSON object.
+    You are a domain expert in agriculture, watershed management, and government reporting. 
+    Extract structured, insightful data from the following report and return ONLY one valid JSON object.
+
+    The JSON must strictly follow this structure:
 
     {{
       "summary": {{
@@ -64,19 +66,32 @@ def llm_extract(text: str):
       ]
     }}
 
-    ⚠️ DATA RULES:
-    - If missing, use null (not empty string).
-    - Dates must be ISO (YYYY-MM-DD). If vague like "Month 1-36", set to null.
-    - Quantities, costs, counts, and progress must be numbers.
-    - Environmental metrics keep units (e.g., "5.0 mg/L").
-    - Land area must be in acres.
-    - Return only valid JSON. No markdown or commentary.
+    ⚠️ RULES FOR DATA:
+    - If a value is missing, use null (never empty string).
+    - Dates must be ISO (YYYY-MM-DD). If vague like "Month 1–36", set to null.
+    - Numeric fields (quantities, costs, progress, completionRate, counts, percentages, acres) must be plain numbers only.
+    - Progress must be a percentage (0–100). If qualitative, estimate based on report (e.g., "partially complete" ≈ 50).
+    - For environmental metrics (baseline, target), preserve units (e.g., "5.0 mg/L").
+    - For costs, remove currency symbols and round to nearest whole number.
+    - For goals, status must be one of: "Not Started", "In Progress", "Completed".
+    - If a section has no data, return [].
+    - Always output ALL top-level keys, even if empty.
+    - Return ONLY valid JSON. Do not add commentary or markdown.
+
+    ✅ Examples of good output:
+    - "status": "In Progress"
+    - "completionRate": 72
+    - "progress": 45
+    - "startDate": "2021-01-01"
+    - "baseline": "7.5 pH"
+    - "croplandPct": 77
 
     Report Text:
     {text}
     """
     response = model.generate_content(prompt)
     return response.text
+
 
 # ---------- Sanitizer ----------
 def sanitize_llm_output(text: str) -> str:
