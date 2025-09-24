@@ -4,9 +4,9 @@
     "summary": {
       "type": "object",
       "properties": {
-        "totalGoals": { "type": "number" },
-        "totalBMPs": { "type": "number" },
-        "completionRate": { "type": "number" }
+        "totalGoals": { "type": ["integer", "null"] },
+        "totalBMPs": { "type": ["integer", "null"] },
+        "completionRate": { "type": ["number", "null"] }
       },
       "required": ["totalGoals", "totalBMPs", "completionRate"]
     },
@@ -15,11 +15,12 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "title": { "type": "string" },
-          "description": { "type": "string" }
+          "name": { "type": "string" },
+          "status": { "type": "string" },
+          "target": { "type": ["string", "null"] },
+          "progress": { "type": ["number", "null"] }
         },
-        "required": ["title", "description"]
+        "required": ["name", "status"]
       }
     },
     "bmps": {
@@ -27,12 +28,11 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "title": { "type": "string" },
-          "description": { "type": "string" },
-          "category": { "type": "string" }
+          "type": { "type": "string" },
+          "quantity": { "type": ["number", "null"] },
+          "cost": { "type": ["number", "null"] }
         },
-        "required": ["title", "description", "category"]
+        "required": ["type"]
       }
     },
     "implementation": {
@@ -40,11 +40,12 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "activity": { "type": "string" },
-          "description": { "type": "string" }
+          "name": { "type": "string" },
+          "startDate": { "type": ["string", "null"] },
+          "endDate": { "type": ["string", "null"] },
+          "status": { "type": "string" }
         },
-        "required": ["activity", "description"]
+        "required": ["name", "status"]
       }
     },
     "monitoring": {
@@ -52,13 +53,11 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
           "metricName": { "type": "string" },
-          "value": {},
-          "units": { "type": "string" },
-          "description": { "type": "string" }
+          "baseline": { "type": ["string", "null"] },
+          "target": { "type": ["string", "null"] }
         },
-        "required": ["metricName", "value", "description"]
+        "required": ["metricName"]
       }
     },
     "outreach": {
@@ -66,11 +65,10 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "activity": { "type": "string" },
-          "description": { "type": "string" }
+          "type": { "type": "string" },
+          "count": { "type": ["number", "null"] }
         },
-        "required": ["activity", "description"]
+        "required": ["type"]
       }
     },
     "geographicAreas": {
@@ -78,21 +76,14 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
           "name": { "type": "string" },
-          "description": { "type": "string" }
+          "acres": { "type": ["number", "null"] },
+          "croplandPct": { "type": ["number", "null"] },
+          "wetlandPct": { "type": ["number", "null"] }
         },
-        "required": ["name", "description"]
+        "required": ["name"]
       }
     }
   },
-  "required": [
-    "summary",
-    "goals",
-    "bmps",
-    "implementation",
-    "monitoring",
-    "outreach",
-    "geographicAreas"
-  ]
+  "required": ["summary", "goals", "bmps", "implementation", "monitoring", "outreach", "geographicAreas"]
 }
