@@ -50,13 +50,13 @@ Your task is to extract structured data from the input report text and return it
 
 ### 🧩 JSON Structure (Schema):
 
-- summary: { totalGoals: number, totalBMPs: number, completionRate: number }
-- goals: [{ title: string, description: string, status: string, target: string, progress: number }]
-- bmps: [{ title: string, description: string, category: string, quantity: number, cost: number }]
-- implementation: [{ activity: string, description: string, startDate: string, endDate: string, status: string }]
-- monitoring: [{ metricName: string, value: string, units: string, description: string, baseline: string, target: string }]
-- outreach: [{ activity: string, description: string, count: number }]
-- geographicAreas: [{ name: string, description: string, acres: number, croplandPct: number, wetlandPct: number }]
+- summary: {{ "totalGoals": number, "totalBMPs": number, "completionRate": number }}
+- goals: [{{ "title": string, "description": string, "status": string, "target": string, "progress": number }}]
+- bmps: [{{ "title": string, "description": string, "category": string, "quantity": number, "cost": number }}]
+- implementation: [{{ "activity": string, "description": string, "startDate": string, "endDate": string, "status": string }}]
+- monitoring: [{{ "metricName": string, "value": string, "units": string, "description": string, "baseline": string, "target": string }}]
+- outreach: [{{ "activity": string, "description": string, "count": number }}]
+- geographicAreas: [{{ "name": string, "description": string, "acres": number, "croplandPct": number, "wetlandPct": number }}]
 
 ⚠️ Rules:
 - All fields must be present.
@@ -66,6 +66,7 @@ Your task is to extract structured data from the input report text and return it
 
 Begin extraction now.
 """
+
 
 # ---------------------- LLM Extractor ----------------------
 def llm_extract(text: str):
