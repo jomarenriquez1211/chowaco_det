@@ -43,7 +43,7 @@
           "name": { "type": "string" },
           "startDate": { "type": ["string", "null"] },
           "endDate": { "type": ["string", "null"] },
-          "status": { "type": "string" }
+          "status": { "type": ["string", "null"] }
         },
         "required": ["name", "status"]
       }
