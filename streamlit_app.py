@@ -57,20 +57,48 @@ def sanitize_llm_output(text: str) -> str:
 # -------- LLM Extraction --------
 def llm_extract(text: str):
     prompt = f"""
-    Extract the following fields from this watershed report
-    and return in valid JSON only (no commentary):
+    You are a data extractor. 
+    Analyze the following watershed report and return ONLY one valid JSON object.
+
+    The JSON must strictly follow this structure:
 
     {{
-      "summary": {{ "totalGoals": number, "totalBMPs": number, "completionRate": number }},
-      "goals": [{{ "name": string, "status": string, "target": string, "progress": number }}],
-      "bmps": [{{ "type": string, "quantity": number, "cost": number }}],
-      "implementation": [{{ "name": string, "startDate": string, "endDate": string, "status": string }}],
-      "monitoring": [{{ "metricName": string, "baseline": string, "target": string }}],
-      "outreach": [{{ "type": string, "count": number }}],
-      "geographicAreas": [{{ "name": string, "acres": number, "croplandPct": number, "wetlandPct": number }}]
+      "summary": {{
+        "totalGoals": number,
+        "totalBMPs": number,
+        "completionRate": number
+      }},
+      "goals": [
+        {{ "name": string, "status": string, "target": string, "progress": number }}
+      ],
+      "bmps": [
+        {{ "type": string, "quantity": number, "cost": number }}
+      ],
+      "implementation": [
+        {{ "name": string, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "status": string }}
+      ],
+      "monitoring": [
+        {{ "metricName": string, "baseline": string, "target": string }}
+      ],
+      "outreach": [
+        {{ "type": string, "count": number }}
+      ],
+      "geographicAreas": [
+        {{ "name": string, "acres": number, "croplandPct": number, "wetlandPct": number }}
+      ]
     }}
 
-    Text: {text}
+    ⚠️ DATA INSTRUCTIONS:
+    - Use null (not empty string) if a value is missing or unknown.
+    - Dates must be in ISO format (YYYY-MM-DD). If the text says "Month 1–36" or "Year 1", set both startDate and endDate to null.
+    - Quantities, costs, counts, and progress must be numbers. Remove symbols like "$" or "%".
+    - Keep environmental metric units as part of the string (e.g., "5.0 mg/L").
+    - Land areas must be in acres. If only % is given, calculate acres based on watershed size if possible; otherwise use null.
+    - If no goals, BMPs, or outreach activities are found, return an empty array [] for that section.
+    - Never output commentary, markdown, or extra text — only valid JSON.
+
+    Report Text:
+    {text}
     """
     response = model.generate_content(prompt)
     return response.text
